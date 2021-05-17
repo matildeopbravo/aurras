@@ -1,5 +1,6 @@
 OBJDIR := obj
 CFLAGS += -Wall -Ofast -flto -march=native -mtune=native -Isrc -Iinclude/
+OBJS = $(OBJDIR)/%.o
 
 all: server client
 
@@ -10,7 +11,7 @@ client: bin/aurras
 bin/aurra%: $(OBJDIR)/aurra%.o
 	$(CC) -g $^ -o "$@"
 
-$(OBJDIR)/%.o : src/%.c
+$(OBJS): src/%.c
 	mkdir -p bin obj
 	$(CC) -c $< -o $@ $(CFLAGS)
 
