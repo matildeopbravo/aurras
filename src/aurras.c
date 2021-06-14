@@ -5,9 +5,19 @@
 #include <unistd.h>
 
 #include "../include/primary_functions.h"
+#include "../include/request.h"
 #include "../include/stdprs.h"
 
 int main(int argc, char** argv) {
+    Request novo = {
+        .client_pid = getpid(),
+        .request_type = TRANSFORM,
+        .requested_filters = {1, 0, 2},
+        .input_file = "sou_linda.mp4",
+        .output_file = "sou_linda_output.mp4"};
+    int fd_leitura = open("client_to_server", O_RDONLY);
+    write(fd_leitura, &novo, sizeof(novo));
+
     /*************** INIT CMD TABLE *****************************/
     _COMMANDS_TABLE cmd_t = init_stdprs();
 
