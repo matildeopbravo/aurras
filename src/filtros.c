@@ -24,12 +24,8 @@ struct catalogo_simples {
 typedef struct catalogo_simples* Catalogo_simples;
 
 struct catalogo_filtros {
-  // Tree* lista_filtros;  // ou uma lista ligada
-  // ordenada por identificador
-
   Filtro                   filtro;
   struct catalogo_filtros* prox;
-  // size_t total;
 };
 typedef struct catalogo_filtros* Catalogo_filtros;
 
@@ -53,7 +49,7 @@ void free_filtro(Filtro filtro) {
 }
 
 // TODO mudar
-// pode dar overflow
+//  falta verificar se é numero
 static Filtro parse_filtro(char* string) {
   if (!string) return NULL;
   char* identificador       = strsep(&string, " ");
@@ -61,20 +57,19 @@ static Filtro parse_filtro(char* string) {
   char* max_instancias      = strsep(&string, " ");
 
   if (!max_instancias) return NULL;
-  size_t max_instancias_valor = -1;
+  int max_instancias_valor = atoi(max_instancias);
 
-  if (1 != scanf(max_instancias, "%zu", &max_instancias_valor)) return NULL;
-
+  // if (1 != scanf(max_instancias, "%zu", &max_instancias_valor)) return NULL;
   return init_filtro(identificador, ficheiro_executavel, max_instancias_valor);
 }
 
 void show_filtro(Filtro filtro) {
   if (!filtro) return;
   printf("\nFILTRO\n");
-  printf("\tidentificador: %s\n", filtro->identificador);
+  printf("\tidentificador\t: %s\n", filtro->identificador);
   printf("\tficheiro executavel: %s\n", filtro->ficheiro_executavel);
-  printf("\tmax instancias: %zu\n", filtro->em_processamento);
-  printf("\tem processamento: %zu\n\n", filtro->max_instancias);
+  printf("\tmax instancias\t: %zu\n", filtro->max_instancias);
+  printf("\tem processamento: %zu\n\n", filtro->em_processamento);
 }
 
 /* Catalogo de filtros simples */
@@ -130,7 +125,6 @@ bool valid_filtro_catalogo_simples(Catalogo_simples catalogo, char* filtro) {
 
 /* Catalogo de filtros completo */
 
-// TODO verificar
 Catalogo_filtros add_filtro_catalogo(Catalogo_filtros catalogo, Filtro filtro) {
   if (!filtro) return catalogo;
 
@@ -142,17 +136,6 @@ Catalogo_filtros add_filtro_catalogo(Catalogo_filtros catalogo, Filtro filtro) {
   return novo;
 }
 
-// ssize_t readln2(int fd, char* line, size_t size) {
-//  ssize_t i = 0;
-//  ssize_t bytes_read;
-//  while (i < size && (bytes_read = read(fd, &line[i], 1)) > 0 &&
-//         line[i] != '\n')
-//    i++;
-//  line[i++] = '\n';
-//  return i;
-//}
-
-// TODO
 Catalogo_filtros init_fitros(char* config_name) {
   int fd;
   if ((fd = open(config_name, O_RDONLY)) < 0) return NULL;
@@ -163,7 +146,6 @@ Catalogo_filtros init_fitros(char* config_name) {
 
   size_t total_read;
   while ((total_read = readln(fd, line, BUF_SIZE)) > 0) {
-    // printf("%s\n", line);
     Filtro filtro = parse_filtro(line);
     catalogo      = add_filtro_catalogo(catalogo, filtro);
   }
@@ -173,41 +155,54 @@ Catalogo_filtros init_fitros(char* config_name) {
   return catalogo;
 }
 
-// TODO verificar
+Filtro search_filtro(Catalogo_filtros catalogo, char* name) {
+  Filtro filtro = NULL;
+  bool   find   = false;
+  if (catalogo || name) {
+    Catalogo_filtros e = catalogo;
+    for (; e && !find; e = e->prox) {
+      if (e->filtro) {
+        find   = !strcmp(e->filtro->identificador, name);
+        filtro = e->filtro;
+      }
+    }
+  }
+  return filtro;
+}
+
 bool valid_filtro(
-    Catalogo_filtros catalogo, char* filtro) {  // verifica se é valido
-  bool result = false;
-  if (catalogo || filtro) {
-    Catalogo_filtros e = catalogo;
-    for (; e && !result; e = e->prox) {
-      if (e->filtro) result = !strcmp(e->filtro->identificador, filtro);
-    }
-  }
-  return result;
+    Catalogo_filtros catalogo, char* name_filtro) {  // verifica se é valido
+  Filtro filtro = search_filtro(catalogo, name_filtro);
+  return filtro != NULL && !strcmp(filtro->identificador, name_filtro);
 }
 
+// So aumenta se os em processamento não forem igual ao valor do max_instancias
 bool increase_number_filtro(Catalogo_filtros catalogo, char* name) {
-  bool result = false;
-  if (catalogo || name) {
-    Catalogo_filtros e = catalogo;
-    for (; e && !result; e = e->prox) {
-      if (e->filtro) result = !strcmp(e->filtro->identificador, name);
-      if (result) e->filtro->max_instancias++;
+  bool   result = false;
+  Filtro filtro = search_filtro(catalogo, name);
+  if (filtro) {
+    filtro->em_processamento++;
+    if ((result = filtro->em_processamento > filtro->max_instancias)) {
+      filtro->em_processamento = filtro->max_instancias;
     }
   }
-  return result;
+  return !result;
 }
 
+// So diminui se os em processamento não forem igual ao valor do max_instancias
 bool decrease_number_filtro(Catalogo_filtros catalogo, char* name) {
-  bool result = false;
-  if (catalogo || name) {
-    Catalogo_filtros e = catalogo;
-    for (; e && !result; e = e->prox) {
-      if (e->filtro) result = !strcmp(e->filtro->identificador, name);
-      if (result) e->filtro->max_instancias--;
+  bool   result = false;
+  Filtro filtro = search_filtro(catalogo, name);
+  if (filtro) {
+    if ((result =
+             filtro->em_processamento == 1 || filtro->em_processamento == 0)) {
+      filtro->em_processamento = 0;
+    }
+    else {
+      filtro->em_processamento--;
     }
   }
-  return result;
+  return !result;
 }
 
 void free_catalogo_filtros(Catalogo_filtros catalogo) {
@@ -228,6 +223,10 @@ void show_catalogo(Catalogo_filtros catalogo) {
     show_filtro(e->filtro);
     e = e->prox;
   }
+}
+
+void show_one_filtro(Catalogo_filtros catalogo, char* name) {
+  show_filtro(search_filtro(catalogo, name));
 }
 
 // TODO apagar
@@ -259,29 +258,46 @@ void teste_catalogo_simples() {
   free_catalogo_simples(catalogo);
 }
 
+// TODO apagar
 void teste_catalogo_filtros() {
-  // Catalogo_filtros catalogo = init_fitros("etc/aurrasd.conf");
-
-  char* s  = "alto aurrasd-gain-double 2";
-  char* s1 = "baixo aurrasd-gain-half 2";
-  char* s2 = "eco aurrasd-echo 1";
-  char* s3 = "rapido aurrasd-tempo-double 2";
-  char* s4 = "lento aurrasd-tempo-half 1";
-
-  Filtro f  = parse_filtro(s);
-  Filtro f1 = parse_filtro(s1);
-  Filtro f2 = parse_filtro(s2);
-  Filtro f3 = parse_filtro(s3);
-  Filtro f4 = parse_filtro(s4);
-
-  Catalogo_filtros catalogo = NULL;
-  catalogo                  = add_filtro_catalogo(catalogo, f);
-  catalogo                  = add_filtro_catalogo(catalogo, f1);
-  catalogo                  = add_filtro_catalogo(catalogo, f2);
-  catalogo                  = add_filtro_catalogo(catalogo, f3);
-  catalogo                  = add_filtro_catalogo(catalogo, f4);
-
+  Catalogo_filtros catalogo = init_fitros("../etc/aurrasd.conf");
+  printf("CATALOGO:\n");
   show_catalogo(catalogo);
+  printf("--------------\n");
+
+  printf("Is valid \"baixo\": %d\n", valid_filtro(catalogo, "baixo"));
+  printf("Is valid \"hahah\": %d\n", valid_filtro(catalogo, "hahah"));
+  printf("Is valid \"algo\"\t: %d\n", valid_filtro(catalogo, "algo"));
+  printf("Is valid \"rapido\": %d\n", valid_filtro(catalogo, "rapido"));
+
+  printf("--------------\n\n");
+
+  printf("Increase value to rapido\n");
+  printf("Executou :%d\n", increase_number_filtro(catalogo, "rapido"));
+  show_one_filtro(catalogo, "rapido");
+  printf("Increase value to rapido\n");
+  printf("Executou :%d\n", increase_number_filtro(catalogo, "rapido"));
+  printf("Increase value to rapido\n");
+  printf("Executou :%d\n", increase_number_filtro(catalogo, "rapido"));
+  show_one_filtro(catalogo, "rapido");
+
+  printf("--------------\n\n");
+  printf(
+      " Decrease value -> Executou :%d\n",
+      decrease_number_filtro(catalogo, "rapido"));
+  printf(
+      " Decrease value -> Executou :%d\n",
+      decrease_number_filtro(catalogo, "rapido"));
+  printf(
+      " Decrease value -> Executou :%d\n",
+      decrease_number_filtro(catalogo, "rapido"));
+  printf(
+      " Decrease value -> Executou :%d\n",
+      decrease_number_filtro(catalogo, "rapido"));
+  show_one_filtro(catalogo, "rapido");
+
+  printf("--------------\n\n");
+  printf("Dar free ao catalogo\n");
   free_catalogo_filtros(catalogo);
 }
 
