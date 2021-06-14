@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+#include "../include/request.h"
 #define BUFSIZE 1024
 
 void sigter_handler(int signum) {
@@ -18,11 +20,25 @@ int main(int argc, char* argv[]) {
     }
     mkfifo("client_to_server", 0644);
     int fd_leitura = open("client_to_server", O_RDONLY);
-    int fd_escrita = open("client_to_server", O_WRONLY);
+    open("client_to_server", O_WRONLY);
     size_t bytes_read = 0;
-    char buf[BUFSIZE];
-
-    while ((bytes_read = read(fd_leitura, buf, BUFSIZE)) > 0) {
+    Request new_request;
+    while ((bytes_read =
+                read(fd_leitura, &new_request, sizeof(struct request))) > 0) {
+        printf("Client PID is %d\n", new_request.client_pid);
+        printf(
+            "Request type is %s\n",
+            new_request.request_type == TRANSFORM ? "Transform" : "Status");
+        for (size_t i = 0; i < MAX_FILTER_NUMBER; i++) {
+            size_t n = 0;
+            if ((n = new_request.requested_filters[i]) > 0) {
+                printf("Filter number %zu was requested %zu times\n", i, n);
+            }
+        }
+        printf(
+            "Input file : %s, output_file : %s\n ",
+            new_request.input_file,
+            new_request.output_file);
     }
 }
 

@@ -5,9 +5,11 @@
 #include <unistd.h>
 
 #include "../include/primary_functions.h"
+#include "../include/request.h"
 #include "../include/stdprs.h"
 
 int main(int argc, char** argv) {
+
     /*************** INIT CMD TABLE *****************************/
     _COMMANDS_TABLE cmd_t = init_stdprs();
 
