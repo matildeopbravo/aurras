@@ -8,7 +8,7 @@
 
 typedef enum request_type { TRANSFORM, STATUS } RequestType;
 
-struct request {
+typedef struct request {
     pid_t client_pid;
     RequestType request_type;
     int requested_filters[MAX_FILTER_NUMBER];
