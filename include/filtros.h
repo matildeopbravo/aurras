@@ -5,24 +5,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct filtro {
-  char*  identificador;
-  char*  ficheiro_executavel;
-  size_t max_instancias;
-  size_t em_processamento;
-};
 typedef struct filtro* Filtro;
 
-struct catalogo_simples {
-  char*                    identificador;
-  struct catalogo_simples* prox;
-};
 typedef struct catalogo_simples* Catalogo_simples;
 
-struct catalogo_filtros {
-  Filtro                   filtro;
-  struct catalogo_filtros* prox;
-};
 typedef struct catalogo_filtros* Catalogo_filtros;
 
 Filtro init_filtro(
