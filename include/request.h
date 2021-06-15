@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MAX_FILTER_NUMBER 5
-#define MAX_FILENAME_LEN 64
+#define MAX_FILTER_NUMBER 32
+#define MAX_FILENAME_LEN 128
 
 typedef enum request_type { TRANSFORM, STATUS } RequestType;
 
