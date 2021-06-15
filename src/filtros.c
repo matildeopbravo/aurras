@@ -7,7 +7,7 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include "auxiliary.h"
+#include "../include/auxiliary.h"
 
 struct filtro {
   char*  identificador;
@@ -31,8 +31,8 @@ Filtro init_filtro(
 
   Filtro filtro = (Filtro) malloc(sizeof(struct filtro));
   *filtro       = (struct filtro){
-      .identificador       = strdup(identificador),
-      .ficheiro_executavel = strdup(ficheiro_executavel),
+      .identificador       = identificador,
+      .ficheiro_executavel = ficheiro_executavel,
       .max_instancias      = max_instancias,
       .em_processamento    = 0};
   return filtro;
@@ -40,8 +40,6 @@ Filtro init_filtro(
 
 void free_filtro(Filtro filtro) {
   if (!filtro) return;
-  free(filtro->identificador);
-  free(filtro->ficheiro_executavel);
   free(filtro);
 }
 
@@ -75,7 +73,7 @@ Catalogo_simples add_catalogo_simples(char* string, Catalogo_simples catalogo) {
   Catalogo_simples novo =
       (Catalogo_simples) malloc(sizeof(struct catalogo_simples));
 
-  novo->identificador = strdup(string);
+  novo->identificador = string;
   novo->prox          = catalogo;
   return novo;
 }
@@ -90,6 +88,32 @@ Catalogo_simples init_catalogo_simples(char* matrix[], size_t N) {
   return catalogo;
 }
 
+// TODO algo nao esta correto
+Catalogo_simples init_catalogo_simples_with_file(char* config_name) {
+  int fd;
+  if ((fd = open(config_name, O_RDONLY)) < 0) return NULL;
+
+  char* line = malloc(BUF_SIZE * (sizeof(char)));
+
+  Catalogo_simples catalogo = NULL;
+
+  size_t total_read;
+  while ((total_read = readln(fd, line, BUF_SIZE)) > 0) {
+
+    if (!line) continue;
+    char* identificador       = strsep(&line, " ");
+    char* ficheiro_executavel = strsep(&line, " ");
+    char* max_instancias      = strsep(&line, " ");
+
+    if (!max_instancias) continue;
+    catalogo = add_catalogo_simples(identificador, catalogo);
+  }
+
+  close(fd);
+  free(line);
+  return catalogo;
+}
+
 void free_catalogo_simples(Catalogo_simples catalogo) {
   Catalogo_simples endereco;
 
@@ -97,7 +121,6 @@ void free_catalogo_simples(Catalogo_simples catalogo) {
     endereco       = catalogo;
     catalogo       = catalogo->prox;
     endereco->prox = NULL;
-    if (endereco->identificador) free(endereco->identificador);
     free(endereco);
   }
 }
@@ -253,6 +276,13 @@ void teste_catalogo_simples() {
   printf("--------------\n");
   printf("Dar free ao catalogo\n");
   free_catalogo_simples(catalogo);
+
+  // catalogo = init_catalogo_simples_with_file("../etc/aurrasd.conf");
+  // printf("CATALOGO:\n");
+  // show_catalogo_simples(catalogo);
+  // printf("--------------\n\n");
+  // printf("Dar free ao catalogo\n");
+  // free_catalogo_simples(catalogo);
 }
 
 // TODO apagar
@@ -298,7 +328,8 @@ void teste_catalogo_filtros() {
   free_catalogo_filtros(catalogo);
 }
 
-// int main(void) {
-//  teste_catalogo_filtros();
-//  return 1;
-//}
+int main(void) {
+  // teste_catalogo_filtros();
+  teste_catalogo_simples();
+  return 1;
+}

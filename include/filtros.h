@@ -23,6 +23,8 @@ Catalogo_simples add_catalogo_simples(char* string, Catalogo_simples catalogo);
 
 Catalogo_simples init_catalogo_simples(char* matrix[], size_t N);
 
+// Catalogo_simples init_catalogo_simples_with_file(char* config_name);
+
 void free_catalogo_simples(Catalogo_simples catalogo);
 
 void show_catalogo_simples(Catalogo_simples catalogo);
