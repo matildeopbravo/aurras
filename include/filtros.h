@@ -33,7 +33,7 @@ bool valid_filtro_catalogo_simples(Catalogo_simples catalogo, char* filtro);
 
 Catalogo_filtros add_filtro_catalogo(Catalogo_filtros catalogo, Filtro filtro);
 
-Catalogo_filtros init_fitros(char* config_name);
+Catalogo_filtros init_catalogo_fitros(char* config_name);
 
 Filtro search_filtro(Catalogo_filtros catalogo, char* name);
 

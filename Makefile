@@ -8,10 +8,10 @@ server: bin/aurrasd
 
 client: bin/aurras
 
-bin/aurras : obj/aurras.o obj/stdprs.o obj/primary_functions.o
+bin/aurras : obj/aurras.o obj/stdprs.o obj/primary_functions.o obj/filtros.o  obj/auxiliary.o
 	gcc -o "$@" $^
 
-bin/aurrasd : obj/aurrasd.o
+bin/aurrasd : obj/aurrasd.o obj/filtros.o obj/auxiliary.o
 	gcc -o "$@" $^
 
 obj/aurras.o: src/aurras.c
@@ -24,6 +24,12 @@ obj/stdprs.o: src/stdprs.c
 	gcc -c $< -o "$@"
 
 obj/primary_functions.o: src/primary_functions.c
+	gcc -c $< -o "$@"
+
+obj/auxiliary.o: src/auxiliary.c
+	gcc -c $< -o "$@"
+
+obj/filtros.o: src/filtros.c
 	gcc -c $< -o "$@"
 
 clean:

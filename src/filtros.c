@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #include "../include/auxiliary.h"
 
@@ -31,8 +32,8 @@ Filtro init_filtro(
 
   Filtro filtro = (Filtro) malloc(sizeof(struct filtro));
   *filtro       = (struct filtro){
-      .identificador       = identificador,
-      .ficheiro_executavel = ficheiro_executavel,
+      .identificador       = strdup(identificador),
+      .ficheiro_executavel = strdup(ficheiro_executavel),
       .max_instancias      = max_instancias,
       .em_processamento    = 0};
   return filtro;
@@ -40,6 +41,8 @@ Filtro init_filtro(
 
 void free_filtro(Filtro filtro) {
   if (!filtro) return;
+  free(filtro->identificador);
+  free(filtro->ficheiro_executavel);
   free(filtro);
 }
 
@@ -61,10 +64,10 @@ static Filtro parse_filtro(char* string) {
 void show_filtro(Filtro filtro) {
   if (!filtro) return;
   printf("\nFILTRO\n");
-  printf("\tidentificador\t: %s\n", filtro->identificador);
-  printf("\tficheiro executavel: %s\n", filtro->ficheiro_executavel);
-  printf("\tmax instancias\t: %zu\n", filtro->max_instancias);
-  printf("\tem processamento: %zu\n\n", filtro->em_processamento);
+  printf("identificador: %s\n", filtro->identificador);
+  printf("ficheiro executavel: %s\n", filtro->ficheiro_executavel);
+  printf("max instancias: %zu\n", filtro->max_instancias);
+  printf("em processamento: %zu\n", filtro->em_processamento);
 }
 
 /* Catalogo de filtros simples */
@@ -73,7 +76,7 @@ Catalogo_simples add_catalogo_simples(char* string, Catalogo_simples catalogo) {
   Catalogo_simples novo =
       (Catalogo_simples) malloc(sizeof(struct catalogo_simples));
 
-  novo->identificador = string;
+  novo->identificador = strdup(string);
   novo->prox          = catalogo;
   return novo;
 }
@@ -121,6 +124,8 @@ void free_catalogo_simples(Catalogo_simples catalogo) {
     endereco       = catalogo;
     catalogo       = catalogo->prox;
     endereco->prox = NULL;
+
+    if (endereco->identificador) free(endereco->identificador);
     free(endereco);
   }
 }
@@ -156,7 +161,7 @@ Catalogo_filtros add_filtro_catalogo(Catalogo_filtros catalogo, Filtro filtro) {
   return novo;
 }
 
-Catalogo_filtros init_fitros(char* config_name) {
+Catalogo_filtros init_catalogo_fitros(char* config_name) {
   int fd;
   if ((fd = open(config_name, O_RDONLY)) < 0) return NULL;
 
@@ -232,7 +237,8 @@ void free_catalogo_filtros(Catalogo_filtros catalogo) {
     endereco       = catalogo;
     catalogo       = catalogo->prox;
     endereco->prox = NULL;
-    free(endereco->filtro);
+
+    free_filtro(endereco->filtro);
     free(endereco);
   }
 }
@@ -287,7 +293,7 @@ void teste_catalogo_simples() {
 
 // TODO apagar
 void teste_catalogo_filtros() {
-  Catalogo_filtros catalogo = init_fitros("../etc/aurrasd.conf");
+  Catalogo_filtros catalogo = init_catalogo_fitros("../etc/aurrasd.conf");
   printf("CATALOGO:\n");
   show_catalogo(catalogo);
   printf("--------------\n");
@@ -328,8 +334,8 @@ void teste_catalogo_filtros() {
   free_catalogo_filtros(catalogo);
 }
 
-int main(void) {
-  // teste_catalogo_filtros();
-  teste_catalogo_simples();
-  return 1;
-}
+// int main(void) {
+//  // teste_catalogo_filtros();
+//  teste_catalogo_simples();
+//  return 1;
+//}
