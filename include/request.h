@@ -10,12 +10,12 @@
 typedef enum request_type { HANDSHAKE = -1, TRANSFORM, STATUS } RequestType;
 
 typedef struct request {
-    pid_t client_pid;
-    RequestType request_type;
-    size_t number_filters;
-    int requested_filters[MAX_FILTER_NUMBER];
-    char input_file[MAX_FILENAME_LEN];
-    char output_file[MAX_FILENAME_LEN];
+  pid_t       client_pid;
+  RequestType request_type;
+  size_t      number_filters;
+  int         requested_filters[MAX_FILTER_NUMBER];
+  char        input_file[MAX_FILENAME_LEN];
+  char        output_file[MAX_FILENAME_LEN];
 } Request;
 
 #endif

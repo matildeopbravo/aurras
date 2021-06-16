@@ -12,9 +12,14 @@ typedef struct filtro {
   size_t em_processamento;
 } Filtro;
 
+typedef struct lista_filtros {
+  Filtro*               filtro;
+  struct lista_filtros* prox;
+} ListaFiltros;
+
 typedef struct catalogo_filtros {
-  Filtro*                  filtro;
-  struct catalogo_filtros* prox;
+  ListaFiltros* lista_filtros;
+  size_t        size;
 } CatalogoFiltros;
 
 void free_filtro(Filtro* filtro);
