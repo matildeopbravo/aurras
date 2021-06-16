@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include "../include/filtros.h"
@@ -53,6 +54,14 @@ bool processa_pedido(CatalogoFiltros* catalogo, Request* req) {
     return true;
 }
 
+int executa_pedido(Request* request) {
+    // tem que devolver 0 se os execs deram todos certo
+    // tem que criar a pipeline e aplicar todos os filtros
+
+    // dado o indice, ir buscar o nome do executavel para fazer exec
+    return 0;
+}
+
 int main(int argc, char* argv[]) {
     if (signal(SIGTERM, sigterm_handler) == SIG_ERR) {
         perror("SIGQUIT");
@@ -78,26 +87,65 @@ int main(int argc, char* argv[]) {
 
     printf("\n%s\n\n", all_filters_string);
     // vai tratar da queue
-    int pipe_onhold[2], pipe_ready[2];
-    if (pipe(pipe_onhold) == -1 || pipe(pipe_ready) == -1) {
+    int pipe_onhold[2], pipe_ready[2], pipe_updates[2], pipe_execucao[2];
+    if (pipe(pipe_onhold) == -1 || pipe(pipe_ready) == -1 ||
+            pipe(pipe_updates) == -1,
+        pipe(pipe_execucao) == -1) {
         perror("Pipe creation failed");
     }
     if (fork() == 0) {
         close(pipe_onhold[1]);
         close(pipe_ready[0]);
+        // vai mandar o estado atual dos filtros cada vez que algum e liberatdo
+        close(pipe_updates[1]);
+        close(pipe_execucao[0]);
         // criacao da queue
-    }
-    // vai meter os filtros em execucao
-    // vai ler um request do pipe que e efetivamente o que vai ser executado  e
-    // faz fork exec quem escreve para este pipe sera o pai que le do pipe com
-    // nome e o outro filho que le do pipe anonimo da queue
-    int pipe_execucao[2];
-    if (pipe(pipe_execucao) == -1) {
-        perror("Pipe creation failed");
+        while (1) {
+            Request request;
+            read(pipe_onhold[0], &request, sizeof(Request));
+            Request fake_request;
+            // vai devolver as stats, no array  dos filtros em que em cada
+            // posicao indica o numero de filtros livres
+            read(pipe_updates[0], &fake_request, sizeof(Request));
+        }
+        // le do pipe on hold e coloca no fim da queue
+        // le alternadamente do pipe updates e do pipe on hold
+        // processo de decisao de qual executar
+        // escreve o Request selecionado para o pipe_execucao que vai fazer a
+        // execucao a serio
     }
 
+    /*  # proximo filho
+    vai meter os filtros em execucao
+    vai ler um request do pipe que e efetivamente o que vai ser executado  e
+    faz fork exec quem escreve para este pipe sera o pai que le do pipe com
+    nome e o outro filho que le do pipe anonimo da queue
+   */
     if (fork() == 0) {
-        close(pipe_execucao[1]);
+        // so chegam aqui requests que tem todos os filtros disponiveis
+        Request request;
+        while (read(pipe_execucao[0], &request, sizeof(Request)) > 0) {
+            if (fork() == 0) {
+                // vai fazer a pipeline de execs
+                int r = executa_pedido(&request);
+                _exit(r);
+            }
+            // avisar o cliente que esta processing
+
+            int status;
+            wait(&status);
+            // ver que filtros foram libertados e enviar para o pipe
+            if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+                // avisa o cliente que terminou
+            }
+            else {
+                // tratar o  erro, pode ter sido porque o file nao existe ou
+                // assim
+            }
+        }
+        // le do pipe_execucao que ja e uma fila de espera, e recebe tanto
+        // pedidos que foram retirados da queue como mandados diretamente faz
+        // fork exec e avisa o cliente
     }
 
     size_t bytes_read = 0;
@@ -114,7 +162,13 @@ int main(int argc, char* argv[]) {
             int tubo_escrita = open(fifo_name, O_WRONLY);
             // temos que ter alguma cena com os clientes atualmnte conectados
         }
+
         else {
+            // TODO
+            // ver se os filtros do request lido estao disponiveis,
+            // se sim envia para o pipe de execucao. Caso contrario manda para o
+            // pipe on hold e avisa o client que esta pending (?)
+
             // isto e so para debug
             printf(
                 "Request type is %s\n",

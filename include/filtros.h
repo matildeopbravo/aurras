@@ -6,20 +6,20 @@
 #include <string.h>
 
 typedef struct filtro {
-  char*  identificador;
-  char*  ficheiro_executavel;
-  size_t max_instancias;
-  size_t em_processamento;
+    char* identificador;
+    char* ficheiro_executavel;
+    size_t max_instancias;
+    size_t em_processamento;
 } Filtro;
 
 typedef struct lista_filtros {
-  Filtro*               filtro;
-  struct lista_filtros* prox;
+    Filtro* filtro;
+    struct lista_filtros* prox;
 } ListaFiltros;
 
 typedef struct catalogo_filtros {
-  ListaFiltros* lista_filtros;
-  size_t        size;
+    ListaFiltros* lista_filtros;
+    size_t size;
 } CatalogoFiltros;
 
 void free_filtro(Filtro* filtro);
