@@ -41,3 +41,32 @@ ssize_t read_file(char* filename) {
   }
   return total_read;
 }
+
+/* QUEUE */
+
+Queue* init_queue(Request* request) {
+  Queue* queue   = (Queue*) malloc(sizeof(struct queue));
+  queue->request = request;
+  queue->prox    = NULL;
+  return queue;
+}
+
+void add_request_to_queue(Request* request, Queue* last_request) {
+  if (last_request) {
+    last_request->prox    = (Queue*) malloc(sizeof(struct queue));
+    last_request          = last_request->prox;
+    last_request->request = request;
+  }
+  else {
+    last_request = init_queue(request);
+  }
+}
+
+Request* remove_request(Queue* prev_queue, Queue* cur_queue) {
+  // isto não deveria acontecer
+  if (!prev_queue || !cur_queue) return NULL;
+
+  Request* request = cur_queue->request;
+  prev_queue->prox = cur_queue->prox;
+  return request;
+}
