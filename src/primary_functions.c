@@ -31,18 +31,20 @@ int parser_filter(char* test_filter) {
 /* return the argv postion of the filter that does not exist (otherwise return
  * -1) */
 int parser_filters(Request* request, char* argv[], int argc) {
+
     for (int i = 0; i < MAX_FILTER_NUMBER; i++) {
         request->requested_filters[i] = 0;
     }
 
+    size_t number_filters = 0;
     for (int i = FIRST_FILTER_ARGV; i < argc; i++) {
         int filter_postion = parser_filter(argv[i]);
-
         /* the filter does not exist */
         if (filter_postion == -1) return i;
-
         request->requested_filters[filter_postion]++;
+        number_filters++;
     }
+    request->number_filters = number_filters;
     return -1;
 }
 
