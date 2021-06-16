@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "../include/reply.h"
 #include "../include/filtros.h"
 #include "../include/request.h"
 #define BUFSIZE 1024
@@ -97,6 +98,23 @@ int main(int argc, char* argv[]) {
           "Input file : %s, output_file : %s\n ",
           new_request->input_file,
           new_request->output_file);
+
+      /* criação de um reply para debug */
+      Reply reply;
+      reply.state = PENDING;
+
+      char server_to_client_pipe[1024];
+      sprintf(server_to_client_pipe, "tubo_%d", new_request->client_pid);
+      int server_to_client = open(server_to_client_pipe, O_WRONLY);
+      write(server_to_client, &reply, sizeof(struct reply));
+      sleep(5);
+      reply.state = PROCESSING;
+      write(server_to_client, &reply, sizeof(struct reply));
+      sleep(5);
+      reply.state = FINISHED;
+      write(server_to_client, &reply, sizeof(struct reply));
+      sleep(5);
+      /* fim do debug de um reply */
     }
     processa_pedido(catalogo, new_request);
   }

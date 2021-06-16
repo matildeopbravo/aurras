@@ -29,16 +29,16 @@ int main(int argc, char** argv) {
         // valida o filtro recebido,  lendo os filtros que estao no pipe
         // se forem todos validos
         // enviar ao servidor o pedido de conecção
-        char fifo_name[1024];
-        sprintf(fifo_name, "tubo_%d\n", getpid());
-        mkfifo(fifo_name, 0644);
-        int tubo_leitura = open(fifo_name, O_RDONLY);
+        //    char fifo_name[1024];
+        //sprintf(fifo_name, "tubo_%d\n", getpid());
+        //mkfifo(fifo_name, 0644);
+        //int tubo_leitura = open(fifo_name, O_RDONLY);
         // TODO
         // fazer o pedido propriamente dito
         // aguardar resposta
         // pode ser : erro,pending,processing,done
         do_command(p_i);
-        unlink(fifo_name);
+        //unlink(fifo_name);
     }
     else
         show_error(get_error(p_i));
