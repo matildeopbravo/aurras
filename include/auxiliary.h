@@ -3,7 +3,14 @@
 
 #include <stdlib.h>
 
+#include "request.h"
+
 #define BUF_SIZE 1024
+
+typedef struct queue {
+    Request* request;
+    struct queue* prox;
+} Queue;
 
 ssize_t readch(int fd, char* buf);
 
