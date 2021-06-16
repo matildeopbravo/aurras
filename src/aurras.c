@@ -25,8 +25,20 @@ int main(int argc, char** argv) {
 
     /************** PARSER and EXECUTION ************************/
     _PARSER_INFO p_i = parser_cmd(cmd_t, argc, argv);
-    if (get_status(p_i) != ERROR)
+    if (get_status(p_i) != ERROR) {
+        // TODO
+        // enviar ao servidor o pedido de conecção
+        char fifo_name[1024];
+        sprintf(fifo_name, "tubo_%d\n", getpid());
+        mkfifo(fifo_name, 0644);
+        int tubo_leitura = open(fifo_name, O_RDONLY);
+        // TODO
+        // ler os filtros do pipe e valida-los
+        // fazer o pedido
+        // ler a resposta do servidor através do pipe
         do_command(p_i);
+        unlink(fifo_name);
+    }
     else
         show_error(get_error(p_i));
 
