@@ -58,7 +58,7 @@ void inform_client(State state, pid_t pid) {
 // chamado para o elemento acabado de tirar da queue
 // retorna se iniciou o processamento ou false caso algum dos filtros nao
 // esteja disponivel
-bool processa_pedido(CatalogoFiltros* catalogo, Request* req) {
+bool processa_pedido(CatalogoFiltros* catalogo, Request* req, char * all_filters_string) {
     switch (req->request_type) {
         case TRANSFORM: {
             int number_required[MAX_FILTER_NUMBER] = {0};
@@ -80,6 +80,7 @@ bool processa_pedido(CatalogoFiltros* catalogo, Request* req) {
             char fifo_name[1024];
             sprintf(fifo_name, "tubo_%d", req->client_pid);
             int tubo_escrita = open(fifo_name, O_WRONLY);
+            write(tubo_escrita,all_filters_string,strlen(all_filters_string)*sizeof(char));
             break;
         }
     }
@@ -296,7 +297,7 @@ int main(int argc, char* argv[]) {
     Request* new_request = malloc(sizeof(struct request));
     while (!stop && read(fd_leitura, new_request, sizeof(struct request)) > 0) {
         print_server(new_request);
-        bool ready = processa_pedido(catalogo, new_request);
+        bool ready = processa_pedido(catalogo, new_request,all_filters_string);
         int chosen_pipe = ready ? pipe_execucao[1] : pipe_onhold[1];
         if (!ready) {
             inform_client(PENDING, new_request->client_pid);
