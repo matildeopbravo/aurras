@@ -16,6 +16,7 @@
 
 void print_server(Request* new_request) {
 
+    printf("Client PID is %d\n", new_request->client_pid);
     printf(
         "Request type is %s\n",
         new_request->request_type == TRANSFORM ? "Transform" : "Status");
@@ -46,6 +47,14 @@ bool is_available(CatalogoFiltros* catalogo, int indice, int number_required) {
             catalogo->filtros[indice]->em_processamento) >= number_required;
 }
 
+void inform_client(State state, pid_t pid) {
+    Reply reply;
+    reply.state = state;
+    char server_to_client_pipe[1024];
+    sprintf(server_to_client_pipe, "tubo_%d", pid);
+    int server_to_client = open(server_to_client_pipe, O_WRONLY);
+    write(server_to_client, &reply, sizeof(struct reply));
+}
 // chamado para o elemento acabado de tirar da queue
 // retorna se iniciou o processamento ou false caso algum dos filtros nao
 // esteja disponivel
@@ -268,55 +277,31 @@ int main(int argc, char* argv[]) {
                 int r = executa_pedido(catalogo, &request);
                 _exit(r);
             }
-            // avisar o cliente que esta processing
+            inform_client(PROCESSING, request.client_pid);
 
             int status;
             wait(&status);
             // ver que filtros foram libertados e enviar para o pipe
-            if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-                // avisa o cliente que terminou
-            }
-            else {
-                // tratar o  erro, pode ter sido porque o file nao existe ou
-                // assim
-            }
+            State state = (WIFEXITED(status) && WEXITSTATUS(status) == 0)
+                              ? FINISHED
+                              : NOTHING;
+            inform_client(state, request.client_pid);
         }
         // le do pipe_execucao que ja e uma fila de espera, e recebe tanto
         // pedidos que foram retirados da queue como mandados diretamente faz
         // fork exec e avisa o cliente
     }
 
-    size_t bytes_read = 0;
+    /* Leitura principal de novos pedidos atraves do pipe com nome */
     Request* new_request = malloc(sizeof(struct request));
-    while (!stop &&
-           (bytes_read =
-                read(fd_leitura, new_request, sizeof(struct request))) > 0) {
-        printf("Client PID is %d\n", new_request->client_pid);
-        // le do pipe anonimo que vem as cenas da queue
-
-        // temos que ter alguma cena com os clientes atualmnte conectados
-        // TODO
-        // ver se os filtros do request lido estao disponiveis,
-        // se sim envia para o pipe de execucao. Caso contrario manda para o
-        // pipe on hold e avisa o client que esta pending (?)
-
-        // isto e so para debug
+    while (!stop && read(fd_leitura, new_request, sizeof(struct request)) > 0) {
         print_server(new_request);
-        processa_pedido(catalogo, new_request);
-        /* criação de um reply para debug */
-        // Reply reply;
-        // reply.state = PENDING;
-
-        // char server_to_client_pipe[1024];
-        // sprintf(server_to_client_pipe, "tubo_%d",
-        // new_request->client_pid); int server_to_client =
-        // open(server_to_client_pipe, O_WRONLY); write(server_to_client,
-        // &reply, sizeof(struct reply)); sleep(5); reply.state =
-        // PROCESSING; write(server_to_client, &reply, sizeof(struct
-        // reply)); sleep(5); reply.state = FINISHED;
-        // write(server_to_client, &reply, sizeof(struct reply));
-        // sleep(5);
-        /* fim do debug de um reply */
+        bool ready = processa_pedido(catalogo, new_request);
+        int chosen_pipe = ready ? pipe_execucao[1] : pipe_onhold[1];
+        if (!ready) {
+            inform_client(PENDING, new_request->client_pid);
+        }
+        write(chosen_pipe, new_request, sizeof(Request));
     }
     if (catalogo) free_catalogo_filtros(catalogo);
     if (all_filters_string) free(all_filters_string);
