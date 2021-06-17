@@ -57,19 +57,12 @@ void show_filtro(Filtro* filtro) {
 
 /* Catalogo de filtros completo */
 
-// CatalogoFiltros* add_filtro_catalogo(
-//    CatalogoFiltros* catalogo, Filtro* filtro) {
-//  if (!filtro) return catalogo;
-//
-//  ListaFiltros* novo = (ListaFiltros*) malloc(sizeof(struct lista_filtros));
-//
-//  novo->filtro = filtro;
-//  novo->prox   = catalogo->lista_filtros;
-//
-//  catalogo->lista_filtros = novo;
-//  catalogo->size++;
-//  return catalogo;
-//}
+static void add_filtro_catalogo(CatalogoFiltros* catalogo, Filtro* filtro) {
+  if (!filtro) return;
+
+  catalogo->filtros[catalogo->used] = filtro;
+  catalogo->used++;
+}
 
 CatalogoFiltros* init_catalogo_fitros(
     char*  config_name,
@@ -80,26 +73,22 @@ CatalogoFiltros* init_catalogo_fitros(
   if ((fd = open(config_name, O_RDONLY)) < 0 && !all_filters_string)
     return NULL;
 
-  char*         line          = malloc(BUF_SIZE * (sizeof(char)));
-  ListaFiltros* catalogo      = NULL;
-  ListaFiltros* endereco      = NULL;
-  size_t        size_catalogo = 0;
+  char*            line          = malloc(BUF_SIZE * (sizeof(char)));
+  size_t           size_catalogo = 0;
+  CatalogoFiltros* catalogo      = NULL;
 
   size_t total_read;
   while (size_catalogo < MAX_FILTER_NUMBER &&
          (total_read = readln(fd, line, BUF_SIZE)) > 0) {
     Filtro* filtro = parse_filtro(line);
 
-    if (!catalogo || !endereco) {
-      catalogo         = (ListaFiltros*) malloc(sizeof(struct lista_filtros));
-      catalogo->filtro = filtro;
-      catalogo->prox   = (ListaFiltros*) malloc(sizeof(struct lista_filtros));
-      endereco         = catalogo->prox;
+    if (catalogo) {
+      add_filtro_catalogo(catalogo, filtro);
     }
     else {
-      endereco->filtro = filtro;
-      endereco->prox   = (ListaFiltros*) malloc(sizeof(struct lista_filtros));
-      endereco         = endereco->prox;
+      catalogo = (CatalogoFiltros*) malloc(sizeof(struct catalogo_filtros));
+      catalogo->filtros[0] = filtro;
+      catalogo->used       = 1;
     }
 
     // add string
@@ -121,30 +110,21 @@ CatalogoFiltros* init_catalogo_fitros(
       size_catalogo++;
     }
   }
-
-  if (endereco) {
-    endereco->prox = NULL;
-  }
-
-  all_filters_string[size_used - 1] = '\n';
+  if (size_used > 0) all_filters_string[size_used - 1] = '\n';
   close(fd);
   free(line);
-  CatalogoFiltros* catalogo_filtros =
-      (CatalogoFiltros*) malloc(sizeof(struct catalogo_filtros));
-  catalogo_filtros->size          = size_catalogo;
-  catalogo_filtros->lista_filtros = catalogo;
-  return catalogo_filtros;
+  return catalogo;
 }
 
 Filtro* search_filtro(CatalogoFiltros* catalogo, char* name) {
   Filtro* filtro = NULL;
   bool    find   = false;
-  if (catalogo && name && catalogo->lista_filtros) {
-    ListaFiltros* e = catalogo->lista_filtros;
-    for (; e && !find; e = e->prox) {
-      if (e->filtro) {
-        find   = !strcmp(e->filtro->identificador, name);
-        filtro = e->filtro;
+  size_t  size   = catalogo->used;
+  if (catalogo && name) {
+    for (int i = 0; i < size && !find; i++) {
+      if (catalogo->filtros[i]) {
+        find   = !strcmp(catalogo->filtros[i]->identificador, name);
+        filtro = catalogo->filtros[i];
       }
     }
   }
@@ -186,32 +166,22 @@ bool decrease_number_filtro(CatalogoFiltros* catalogo, char* name) {
   return !result;
 }
 
-static void free_lista_filtros(ListaFiltros* lista) {
-  ListaFiltros* endereco;
-  while (lista) {
-    endereco       = lista;
-    lista          = lista->prox;
-    endereco->prox = NULL;
-
-    free_filtro(endereco->filtro);
-    free(endereco);
+static void free_array_filtros(Filtro* filtros[], size_t size) {
+  for (int i = 0; i < size; i++) {
+    free_filtro(filtros[i]);
   }
-  free(lista);
 }
 
 void free_catalogo_filtros(CatalogoFiltros* catalogo) {
   if (!catalogo) return;
-  free_lista_filtros(catalogo->lista_filtros);
+  free_array_filtros(catalogo->filtros, catalogo->used);
   free(catalogo);
 }
 
 void show_catalogo(CatalogoFiltros* catalogo) {
-  if (!catalogo || !catalogo->lista_filtros) return;
-  ListaFiltros* e = catalogo->lista_filtros;
-  while (e) {
-    show_filtro(e->filtro);
-    e = e->prox;
-  }
+  if (!catalogo) return;
+  size_t size = catalogo->used;
+  for (int i = 0; i < size; i++) show_filtro(catalogo->filtros[i]);
 }
 
 void show_one_filtro(CatalogoFiltros* catalogo, char* name) {
