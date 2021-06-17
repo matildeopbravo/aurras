@@ -173,13 +173,10 @@ void increase_number_filtro(CatalogoFiltros* catalogo, size_t indice) {
 void decrease_number_filtro(CatalogoFiltros* catalogo, size_t indice) {
   if (catalogo && indice < catalogo->used) {
     Filtro* filtro = catalogo->filtros[indice];
-    filtro->em_processamento++;
-    if (filtro->em_processamento == 1 || filtro->em_processamento == 0) {
+    if (filtro->em_processamento == 1 || filtro->em_processamento == 0)
       filtro->em_processamento = 0;
-    }
-    else {
+    else
       filtro->em_processamento--;
-    }
   }
 }
 
