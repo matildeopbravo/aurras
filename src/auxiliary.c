@@ -79,11 +79,12 @@ bool valid_request_to_execute(Request* request, CatalogoFiltros* catalogo) {
   if (request->request_type != TRANSFORM) return true;
   size_t array[MAX_FILTER_NUMBER];
 
-  for (size_t i = 0; i < request->number_filters; i++)
-    array[request->requested_filters[i]]++;
-
-  for (size_t i = 0; valid && i < request->number_filters; i++)
-    valid = array[i] < catalogo->filtros[i]->max_instancias;
+  for (size_t i = 0; valid && i < request->number_filters; i++) {
+    size_t need =
+        catalogo->filtros[request->requested_filters[i]]->em_processamento;
+    valid =
+        need < catalogo->filtros[request->requested_filters[i]]->max_instancias;
+  }
   return valid;
 }
 

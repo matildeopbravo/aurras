@@ -37,8 +37,6 @@ void increase_number_filtro(CatalogoFiltros* catalogo, size_t indice);
 
 void decrease_number_filtro(CatalogoFiltros* catalogo, size_t indice);
 
-void show_filtro(Filtro* filtro);
-
 void show_catalogo(CatalogoFiltros* catalogo);
 
 void free_catalogo_filtros(CatalogoFiltros* catalogo);
