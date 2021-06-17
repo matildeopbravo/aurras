@@ -25,6 +25,11 @@ void add_request_to_queue(Request* request, Queue* last_request);
 
 Request* remove_request(Queue* prev_queue, Queue* cur_queue);
 
-bool     valid_request_to_execute(Request* request, CatalogoFiltros* catalogo);
-Request* can_execute_request(Queue* queue, CatalogoFiltros* catalogo);
+bool valid_request_to_execute(Request* request, CatalogoFiltros* catalogo);
+// Request* can_execute_request(Queue* queue, CatalogoFiltros* catalogo);
+
+Request* can_execute_request(
+    Queue*           queue,
+    CatalogoFiltros* catalogo,
+    Queue*           proximo_endereco_a_analisar);
 #endif

@@ -86,7 +86,10 @@ bool valid_request_to_execute(Request* request, CatalogoFiltros* catalogo) {
 }
 
 // TODO verificar
-Request* can_execute_request(Queue* queue, CatalogoFiltros* catalogo) {
+Request* can_execute_request(
+    Queue*           queue,
+    CatalogoFiltros* catalogo,
+    Queue*           proximo_endereco_a_analisar) {
   Request* request  = NULL;
   Queue*   endereco = queue;
   bool     find     = false;
@@ -97,6 +100,12 @@ Request* can_execute_request(Queue* queue, CatalogoFiltros* catalogo) {
     find             = valid_request_to_execute(request, catalogo);
     if (!find) endereco = endereco->prox;
   }
-  if (find) request = remove_request(endereco, endereco->prox);
+  if (find) {
+    request                     = remove_request(endereco, endereco->prox);
+    proximo_endereco_a_analisar = endereco->prox;
+  }
+  else
+    proximo_endereco_a_analisar = NULL;
+
   return request;
 }

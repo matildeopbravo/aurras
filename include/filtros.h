@@ -45,4 +45,6 @@ void free_catalogo_filtros(CatalogoFiltros* catalogo);
 
 void update_catalogo_done_request(CatalogoFiltros* catalogo, Request request);
 
+void update_catalogo_execute_request(
+    CatalogoFiltros* catalogo, Request request);
 #endif
