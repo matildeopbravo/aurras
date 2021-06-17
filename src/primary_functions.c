@@ -165,7 +165,28 @@ prs_pointer transform(int argc, char** argv) {
 }
 
 prs_pointer status(int argc, char** argv) {
-    printf("status :)\n");
+    
+    Request request = {.request_type = STATUS, .client_pid = getpid()};
+    
+    /***** create the server_to_client pipe to get the Reply *****/
+    char server_to_client_fifo_name[1024];
+    sprintf(server_to_client_fifo_name, "tubo_%d", request.client_pid);
+    mkfifo(server_to_client_fifo_name, 0644);
+
+    /*************** send the request to server *****************/
+    int client_to_server = open("client_to_server", O_WRONLY);
+    write(client_to_server, &request, sizeof(struct request));
+
+    /****** open the reply_pipe to read the server  reply *******/
+    /* OBS: only now I can do this because if I open before the request
+     * the server can't open the pipe (becausa de open here will be blocked)
+     * and the process will break before the request */
+    int server_to_client = open(server_to_client_fifo_name, O_RDONLY);
+    open(server_to_client_fifo_name, O_WRONLY);
+
+    char status_buf[BUFSIZ];
+    int bytes = read(server_to_client, &status_buf, BUFSIZ);
+    write(STDOUT_FILENO, &status_buf, bytes);
 
     return NULL;
 }
