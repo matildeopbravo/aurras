@@ -14,14 +14,6 @@
 
 /***************** MACROS *****************************/
 
-#define ANSI_COLOR_RED "\x1b[31m"
-#define ANSI_COLOR_GREEN "\x1b[32m"
-#define ANSI_COLOR_YELLOW "\x1b[33m"
-#define ANSI_COLOR_BLUE "\x1b[34m"
-#define ANSI_COLOR_MAGENTA "\x1b[35m"
-#define ANSI_COLOR_CYAN "\x1b[36m"
-#define ANSI_COLOR_RESET "\x1b[0m"
-
 #define INPUT_FILE_ARGV 0
 #define OUTPUT_FILE_ARGV 1
 #define FIRST_FILTER_ARGV 2
@@ -30,62 +22,23 @@
 
 void show_state (State state, State last_state) {
 
-    switch(last_state){
-        case PENDING: 
-      printf (ANSI_COLOR_GREEN "\r→ "ANSI_COLOR_RESET "pending " ANSI_COLOR_GREEN "complete\n" ANSI_COLOR_RESET);
-            break;
-        case PROCESSING:
-    printf (ANSI_COLOR_GREEN "\r→ "ANSI_COLOR_RESET "processing " ANSI_COLOR_GREEN "complete\n" ANSI_COLOR_RESET);
-            break;
-        case FINISHED:
-            return;
-        case NOTHING:
-            break;
-        default:
-            printf("Default\n");
-            break;
-    }
-
     switch(state){
-        case PENDING: 
-            printf (ANSI_COLOR_BLUE "→" ANSI_COLOR_RESET " pending ");
+        case PENDING:
+            write(STDOUT_FILENO,"pending\n",sizeof(char)*9);
             break;
         case PROCESSING:
-            printf (ANSI_COLOR_BLUE "→" ANSI_COLOR_RESET " processing ");
+            write(STDOUT_FILENO,"processing\n",sizeof(char)*12);
             break;
         case FINISHED:
-            printf (ANSI_COLOR_GREEN "→" ANSI_COLOR_RESET " finished\n ");
+            write(STDOUT_FILENO,"finished\n",sizeof(char)*10);
             return;
             break;
         case NOTHING:
             break;
         default:
-            printf("Default\n");
             break;
     }
     
-    fflush (stdout);
-  
-  while (1) {  
-    printf (ANSI_COLOR_YELLOW "." ANSI_COLOR_RESET);
-    fflush (stdout);
-    sleep (1);
-    
-    printf (ANSI_COLOR_YELLOW "." ANSI_COLOR_RESET);
-    fflush (stdout);
-    sleep (1);
-    
-    fflush (stdout);
-    printf (ANSI_COLOR_YELLOW "." ANSI_COLOR_RESET);
-    fflush (stdout);
-    sleep(1);
-    
-    printf ("\033[3D");
-    fflush (stdout);
-    printf ("\033[K");
-    fflush (stdout);
-    sleep (1);
-  }
 }
 
 
@@ -188,10 +141,9 @@ prs_pointer transform(int argc, char** argv) {
     int invalid_filter;
 
     if ((invalid_filter = parser_filters(&request, argv, argc,filters)) != -1) {
-        printf(
-            "Filter \"%s\" does not exist. Please insert a valid filter\n",
-            argv[invalid_filter]);
-        return NULL;
+      char * buffer = "Filter does not exist";  
+      write(STDERR_FILENO,buffer,sizeof(buffer));    
+      return NULL;
     }
 
     /* create a child to send a pid to server */
@@ -219,15 +171,8 @@ prs_pointer transform(int argc, char** argv) {
         State last_state = NOTHING;
         int load_pid = -1;
         while(read(server_to_client, &reply, sizeof(struct reply)) > 0){
-            
-            if (load_pid != -1){
-                kill(load_pid, SIGKILL);
-            }
-           
-            if (reply.state == FINISHED) {show_state(reply.state, last_state); _exit(0);}
-            
-            if ((load_pid = fork()) == 0){show_state(reply.state, last_state);_exit(0);}
-            last_state = reply.state;
+            show_state(reply.state, last_state);
+            if (reply.state == FINISHED) {unlink(server_to_client_fifo_name);_exit(0);}
         }
         unlink(server_to_client_fifo_name);
         _exit(0);
@@ -242,25 +187,25 @@ prs_pointer transform(int argc, char** argv) {
 prs_pointer status(int argc, char** argv) {
     printf("status :)\n");
 
-    char* code = "$status%";
-    printf("\nString to <write>: %s\n", code);
-
     return NULL;
 }
 
 prs_pointer info(int argc, char** argv) {
-    printf("./aurras status\n./aurras transform input-filename output-filename filter-id-1 filter-id-2 ...\n");
+    char * buffer = "./aurras status\n./aurras transform input-filename output-filename filter-id-1 filter-id-2 ...\n";
+    write(STDOUT_FILENO,buffer,sizeof(buffer));
 
     return NULL;
 }
 
 void show_error(_ERROR error) {
     if (error == COMMAND) {
-        printf("Incorrect command name\n");
+        char * buffer = "Incorrect command name\n";
+        write(STDERR_FILENO,buffer,sizeof(buffer));
         return;
     }
     if (error == N_ARGS) {
-        printf("Incorrect number of arguments\n");
+        char * buffer = "Incorrect number of args\n";
+        write(STDERR_FILENO,buffer,sizeof(buffer));
         return;
     }
 }
