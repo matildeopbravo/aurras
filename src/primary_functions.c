@@ -104,7 +104,7 @@ int parser_filter(char* test_filter) {
 int parser_filters(Request* request, char* argv[], int argc) {
 
     for (int i = 0; i < MAX_FILTER_NUMBER; i++) {
-        request->requested_filters[i] = 0;
+        request->requested_filters[i] = -1;
     }
 
     size_t number_filters = 0;
@@ -112,7 +112,7 @@ int parser_filters(Request* request, char* argv[], int argc) {
         int filter_postion = parser_filter(argv[i]);
         /* the filter does not exist */
         if (filter_postion == -1) return i;
-        request->requested_filters[filter_postion]++;
+        request->requested_filters[i - FIRST_FILTER_ARGV] = filter_postion;
         number_filters++;
     }
     request->number_filters = number_filters;
@@ -143,6 +143,9 @@ prs_pointer transform(int argc, char** argv) {
             argv[invalid_filter]);
         return NULL;
     }
+
+    for (int i = 0; i < 32; i++)printf("%d\n",request.requested_filters[i]);
+
 
     /* create a child to send a pid to server */
     int pid_client;
