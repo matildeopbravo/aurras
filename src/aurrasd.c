@@ -7,6 +7,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "../include/auxiliary.h"
 #include "../include/filtros.h"
 #include "../include/reply.h"
 #include "../include/request.h"
@@ -96,14 +97,84 @@ int main(int argc, char* argv[]) {
     // vai mandar o estado atual dos filtros cada vez que algum e liberatdo
     close(pipe_updates[1]);
     close(pipe_execucao[0]);
+
     // criacao da queue
+    Queue* queue        = NULL;
+    Queue* last_request = NULL;
+    size_t size_queue   = 0;
+    size_t max_queue    = 10;
+
+    bool estrategia = true;
     while (1) {
-      Request request;
-      read(pipe_onhold[0], &request, sizeof(Request));
-      Request fake_request;
-      // vai devolver as stats, no array  dos filtros em que em cada
-      // posicao indica o numero de filtros livres
-      read(pipe_updates[0], &fake_request, sizeof(Request));
+      /* se a queue estiver vazia, o q acontece??
+       * estrategia seria um bool q diria o q faria
+       * mudar nome
+       */
+      if (size_queue == 0 || estrategia) {
+        Request request;
+        read(pipe_onhold[0], &request, sizeof(Request));
+        // verifica se pode executar ja
+        if (valid_request_to_execute(&request, catalogo)) {
+          // se sim manda
+          write(pipe_execucao[1], &request, sizeof(Request));
+        }
+        else {
+          // caso contrario adiciona a Queue
+          if (!queue) {
+            queue        = init_queue(&request);
+            last_request = queue;
+          }
+          else {
+            add_request_to_queue(&request, last_request);
+          }
+          size_queue++;
+        }
+      }
+      else {
+        // vai devolver as stats, no array  dos filtros em que em cada
+        // posicao indica o numero de filtros livres
+        Request fake_request;
+        read(pipe_updates[0], &fake_request, sizeof(Request));
+        // dar update do catalogo??
+        update_catalogo_done_request(catalogo, fake_request);
+
+        // verifica se algum filtro(s) pode ser executado
+        Request* request_to_execute = can_execute_request(queue, catalogo);
+        // se sim manda
+        if (request_to_execute) {
+          write(pipe_execucao[1], request_to_execute, sizeof(Request));
+          // ver se pode executar outro/s??
+          // Esta estrategia é má, nao usar
+          // bool can_execute_more = true;
+          // while (can_execute_more) {
+          //  request_to_execute = can_execute_request(queue, catalogo);
+          //  if (request_to_execute) {
+          //    write(pipe_execucao[1], request_to_execute, sizeof(Request));
+          //  }
+          //  else
+          //    can_execute_more = false;
+          //}
+        }
+      }
+
+      //
+      // Request request;
+      // read(pipe_onhold[0], &request, sizeof(Request));
+      // // adicionar a Queue??
+      // if (!queue) {
+      //   queue        = init_queue(&request);
+      //   last_request = queue;
+      // }
+      // else {
+      //   add_request_to_queue(&request, last_request);
+      // }
+
+      // // vai devolver as stats, no array  dos filtros em que em cada
+      // // posicao indica o numero de filtros livres
+      // Request fake_request;
+      // read(pipe_updates[0], &fake_request, sizeof(Request));
+      // // dar update do catalogo??
+      // update_catalogo_done_request(catalogo, fake_request);
     }
     // le do pipe on hold e coloca no fim da queue
     // le alternadamente do pipe updates e do pipe on hold

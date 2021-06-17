@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "../include/filtros.h"
+
 ssize_t readch(int fd, char* buf) {
   static char file_buffer[BUF_SIZE];
   static int  next_position   = 0;
@@ -68,5 +70,33 @@ Request* remove_request(Queue* prev_queue, Queue* cur_queue) {
 
   Request* request = cur_queue->request;
   prev_queue->prox = cur_queue->prox;
+  return request;
+}
+
+bool valid_request_to_execute(Request* request, CatalogoFiltros* catalogo) {
+  bool   valid = true;
+  size_t array[MAX_FILTER_NUMBER];
+
+  for (size_t i = 0; i < request->number_filters; i++)
+    array[request->requested_filters[i]]++;
+
+  for (size_t i = 0; valid && i < request->number_filters; i++)
+    valid = array[i] < catalogo->filtros[i]->max_instancias;
+  return valid;
+}
+
+// TODO verificar
+Request* can_execute_request(Queue* queue, CatalogoFiltros* catalogo) {
+  Request* request  = NULL;
+  Queue*   endereco = queue;
+  bool     find     = false;
+
+  while (endereco && !find) {
+    bool     fail    = false;
+    Request* request = queue->request;
+    find             = valid_request_to_execute(request, catalogo);
+    if (!find) endereco = endereco->prox;
+  }
+  if (find) request = remove_request(endereco, endereco->prox);
   return request;
 }

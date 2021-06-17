@@ -137,33 +137,62 @@ bool valid_filtro(
   return filtro != NULL && !strcmp(filtro->identificador, name_filtro);
 }
 
-// So aumenta se os em processamento não forem igual ao valor do max_instancias
-bool increase_number_filtro(CatalogoFiltros* catalogo, char* name) {
-  bool    result = false;
-  Filtro* filtro = search_filtro(catalogo, name);
-  if (filtro) {
+//// so aumenta se os em processamento não forem igual ao valor do
+/// max_instancias
+// bool increase_number_filtro(catalogofiltros* catalogo, char* name) {
+//  bool    result = false;
+//  filtro* filtro = search_filtro(catalogo, name);
+//  if (filtro) {
+//    filtro->em_processamento++;
+//    if ((result = filtro->em_processamento > filtro->max_instancias)) {
+//      filtro->em_processamento = filtro->max_instancias;
+//    }
+//  }
+//  return !result;
+//}
+//
+//// so diminui se os em processamento não forem igual ao valor do
+/// max_instancias
+// bool decrease_number_filtro(catalogofiltros* catalogo, char* name) {
+//  bool    result = false;
+//  filtro* filtro = search_filtro(catalogo, name);
+//  if (filtro) {
+//    if ((result =
+//             filtro->em_processamento == 1 || filtro->em_processamento == 0))
+//             {
+//      filtro->em_processamento = 0;
+//    }
+//    else {
+//      filtro->em_processamento--;
+//    }
+//  }
+//  return !result;
+//}
+
+// so aumenta se os em processamento não forem igual ao valor do max_instancias
+void increase_number_filtro(CatalogoFiltros* catalogo, size_t indice) {
+  if (catalogo && indice < catalogo->used) {
+    Filtro* filtro = catalogo->filtros[indice];
     filtro->em_processamento++;
-    if ((result = filtro->em_processamento > filtro->max_instancias)) {
+    if (filtro->em_processamento > filtro->max_instancias) {
       filtro->em_processamento = filtro->max_instancias;
     }
   }
-  return !result;
+  // return !result;
 }
 
-// So diminui se os em processamento não forem igual ao valor do max_instancias
-bool decrease_number_filtro(CatalogoFiltros* catalogo, char* name) {
-  bool    result = false;
-  Filtro* filtro = search_filtro(catalogo, name);
-  if (filtro) {
-    if ((result =
-             filtro->em_processamento == 1 || filtro->em_processamento == 0)) {
+// so diminui se os em processamento não forem igual ao valor do max_instancias
+void decrease_number_filtro(CatalogoFiltros* catalogo, size_t indice) {
+  if (catalogo && indice < catalogo->used) {
+    Filtro* filtro = catalogo->filtros[indice];
+    filtro->em_processamento++;
+    if (filtro->em_processamento == 1 || filtro->em_processamento == 0) {
       filtro->em_processamento = 0;
     }
     else {
       filtro->em_processamento--;
     }
   }
-  return !result;
 }
 
 static void free_array_filtros(Filtro* filtros[], size_t size) {
@@ -186,4 +215,11 @@ void show_catalogo(CatalogoFiltros* catalogo) {
 
 void show_one_filtro(CatalogoFiltros* catalogo, char* name) {
   show_filtro(search_filtro(catalogo, name));
+}
+
+void update_catalogo_done_request(CatalogoFiltros* catalogo, Request request) {
+  size_t size = request.number_filters;
+  for (size_t i = 0; i < size; i++) {
+    decrease_number_filtro(catalogo, request.requested_filters[i]);
+  }
 }
