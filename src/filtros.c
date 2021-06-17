@@ -17,15 +17,8 @@ char *config_path, *filter_path;
 Filtro* init_filtro(
     char* identificador, char* ficheiro_executavel, size_t max_instancias) {
 
-  Filtro* filtro = (Filtro*) malloc(sizeof(struct filtro));
-  *filtro        = (struct filtro){
-      .identificador       = strdup(identificador),
-      .ficheiro_executavel = strdup(ficheiro_executavel),
-      .max_instancias      = max_instancias,
-      .em_processamento    = 0};
-
   size_t      len_filter_path = strlen(filter_path);
-  size_t      used = len_filter_path + strlen(ficheiro_executavel) + 1;
+  size_t      used            = len_filter_path + strlen(ficheiro_executavel);
   struct stat buffer;
   char        path_executavel[used];
   // sprintf(filter_path, "%s", ficheiro_executavel);
@@ -35,11 +28,19 @@ Filtro* init_filtro(
       path_executavel[i] = filter_path[i];
     path_executavel[len_filter_path] = '/';
 
-    for (int i = len_filter_path + 1, j = 0; i < used; i++, j++)
+    for (int i = len_filter_path + 1, j = 0; i <= used; i++, j++)
       path_executavel[i] = ficheiro_executavel[j];
-    // path_executavel[used] = '\n';
-    valid = stat(path_executavel, &buffer);
+    path_executavel[used + 1] = '\0';
+    valid                     = stat(path_executavel, &buffer);
   }
+
+  Filtro* filtro = (Filtro*) malloc(sizeof(struct filtro));
+  *filtro        = (struct filtro){
+      .identificador       = strdup(identificador),
+      .ficheiro_executavel = strdup(ficheiro_executavel),
+      .max_instancias      = max_instancias,
+      .em_processamento    = 0};
+
   // verificar se é valido
   if (valid != 0) {
     printf("\nError read filtro:\n");
@@ -162,38 +163,6 @@ bool valid_filtro(
   Filtro* filtro = search_filtro(catalogo, name_filtro);
   return filtro != NULL && !strcmp(filtro->identificador, name_filtro);
 }
-
-//// so aumenta se os em processamento não forem igual ao valor do
-/// max_instancias
-// bool increase_number_filtro(catalogofiltros* catalogo, char* name) {
-//  bool    result = false;
-//  filtro* filtro = search_filtro(catalogo, name);
-//  if (filtro) {
-//    filtro->em_processamento++;
-//    if ((result = filtro->em_processamento > filtro->max_instancias)) {
-//      filtro->em_processamento = filtro->max_instancias;
-//    }
-//  }
-//  return !result;
-//}
-//
-//// so diminui se os em processamento não forem igual ao valor do
-/// max_instancias
-// bool decrease_number_filtro(catalogofiltros* catalogo, char* name) {
-//  bool    result = false;
-//  filtro* filtro = search_filtro(catalogo, name);
-//  if (filtro) {
-//    if ((result =
-//             filtro->em_processamento == 1 || filtro->em_processamento == 0))
-//             {
-//      filtro->em_processamento = 0;
-//    }
-//    else {
-//      filtro->em_processamento--;
-//    }
-//  }
-//  return !result;
-//}
 
 // so aumenta se os em processamento não forem igual ao valor do max_instancias
 void increase_number_filtro(CatalogoFiltros* catalogo, size_t indice) {

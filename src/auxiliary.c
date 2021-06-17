@@ -73,23 +73,16 @@ Request* remove_request(Queue* prev_queue, Queue* cur_queue) {
   return request;
 }
 
-bool valid_request_to_execute(Request* request, CatalogoFiltros* catalogo) {
-  bool   valid = true;
-  size_t array[MAX_FILTER_NUMBER];
-
-  for (size_t i = 0; i < request->number_filters; i++)
-    array[request->requested_filters[i]]++;
-
+bool valid_request_to_execute(Request* request, Request fake_request) {
+  bool valid = true;
   for (size_t i = 0; valid && i < request->number_filters; i++)
-    valid = array[i] < catalogo->filtros[i]->max_instancias;
+    valid = request->requested_filters[i] < fake_request.requested_filters[i];
   return valid;
 }
 
 // TODO verificar
 Request* can_execute_request(
-    Queue*           queue,
-    CatalogoFiltros* catalogo,
-    Queue*           proximo_endereco_a_analisar) {
+    Queue* queue, Request fake_request, Queue* proximo_endereco_a_analisar) {
   Request* request  = NULL;
   Queue*   endereco = queue;
   bool     find     = false;
@@ -97,7 +90,7 @@ Request* can_execute_request(
   while (endereco && !find) {
     bool     fail    = false;
     Request* request = queue->request;
-    find             = valid_request_to_execute(request, catalogo);
+    find             = valid_request_to_execute(request, fake_request);
     if (!find) endereco = endereco->prox;
   }
   if (find) {

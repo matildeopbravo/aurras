@@ -190,92 +190,38 @@ int main(int argc, char* argv[]) {
     // criacao da queue
     Queue* queue        = NULL;
     Queue* last_request = NULL;
-    size_t size_queue   = 0;
     size_t max_queue    = 10;
 
-    bool estrategia = true;
     while (1) {
       /* se a queue estiver vazia, só le pedidos ??. nao porque ele pode receber
        * pedidos acabados
        * estrategia seria um bool q diria o q faria mudar nome
        */
-      if (size_queue == 0 || estrategia) {
-        Request request;
-        read(pipe_onhold[0], &request, sizeof(Request));
-        // verifica se pode executar ja
-        if (valid_request_to_execute(&request, catalogo)) {
-          // se sim manda
-          write(pipe_execucao[1], &request, sizeof(Request));
-          // atualiza catalogo a informar os filtros q vao ser usados
-          update_catalogo_execute_request(catalogo, request);
-        }
-        else {
-          // caso contrario adiciona a Queue
-          if (!queue) {
-            queue        = init_queue(&request);
-            last_request = queue;
-          }
-          else {
-            add_request_to_queue(&request, last_request);
-          }
-          size_queue++;
-        }
+      Request request;
+      // fcntl(pi, F_SETFL, O_NONBLOCK);
+      read(pipe_onhold[0], &request, sizeof(Request));
+      if (!queue) {
+        queue        = init_queue(&request);
+        last_request = queue;
       }
       else {
-        // vai devolver as stats, no array  dos filtros em que em cada
-        // posicao indica o numero de filtros livres
-        Request fake_request;
-        read(pipe_updates[0], &fake_request, sizeof(Request));
-        // dar update do catalogo
-        // decrementa o uso dos filtros
-        update_catalogo_done_request(catalogo, fake_request);
-
-        // verifica se algum filtro(s) pode ser executado
-        Queue*   endereco_a_analisar;
-        Request* request_to_execute =
-            can_execute_request(queue, catalogo, endereco_a_analisar);
-        // se sim manda
-        if (request_to_execute) {
-          write(pipe_execucao[1], request_to_execute, sizeof(Request));
-          update_catalogo_execute_request(catalogo, *request_to_execute);
-          // ver se pode executar outro/s??
-          // mas so verifica X.. porque se a queue for muito grande é
-          // desnecessario
-          bool can_execute_more = true;
-          // punhamos um numero fixo
-          size_t n_elems = 5;
-          while (n_elems > 0 && can_execute_more) {
-            request_to_execute = can_execute_request(
-                endereco_a_analisar, catalogo, endereco_a_analisar);
-            if (request_to_execute) {
-              write(pipe_execucao[1], request_to_execute, sizeof(Request));
-              update_catalogo_execute_request(catalogo, *request_to_execute);
-            }
-            else
-              can_execute_more = false;
-            n_elems--;
-          }
-        }
+        add_request_to_queue(&request, last_request);
       }
+      // vai devolver as stats, no array  dos filtros em que em cada
+      // posicao indica o numero de filtros livres
+      Request fake_request;
+      read(pipe_updates[0], &fake_request, sizeof(Request));
 
-      //
-      // Request request;
-      // read(pipe_onhold[0], &request, sizeof(Request));
-      // // adicionar a Queue??
-      // if (!queue) {
-      //   queue        = init_queue(&request);
-      //   last_request = queue;
-      // }
-      // else {
-      //   add_request_to_queue(&request, last_request);
-      // }
-
-      // // vai devolver as stats, no array  dos filtros em que em cada
-      // // posicao indica o numero de filtros livres
-      // Request fake_request;
-      // read(pipe_updates[0], &fake_request, sizeof(Request));
-      // // dar update do catalogo??
-      // update_catalogo_done_request(catalogo, fake_request);
+      // verifica se algum filtro(s) pode ser executado
+      // TODO ou alterar e remover o endereco aser usado, ou entao verificar se
+      // varias funcoes podem ser executadas
+      Queue*   endereco_a_analisar;
+      Request* request_to_execute =
+          can_execute_request(queue, fake_request, endereco_a_analisar);
+      // se sim manda
+      if (request_to_execute) {
+        write(pipe_execucao[1], request_to_execute, sizeof(Request));
+      }
     }
     // le do pipe on hold e coloca no fim da queue
     // le alternadamente do pipe updates e do pipe on hold
