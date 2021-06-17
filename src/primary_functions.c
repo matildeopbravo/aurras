@@ -116,7 +116,7 @@ char* handshake() {
 prs_pointer transform(int argc, char** argv) {
     char* filters = handshake();
 
-    Request request = {.request_type = TRANSFORM};
+    Request request = {.request_type = TRANSFORM, .client_pid = getpid()};
 
     /* filters parser */
     parser_filenames(&request, argv, argc);
@@ -134,43 +134,33 @@ prs_pointer transform(int argc, char** argv) {
     }
 
     /* create a child to send a pid to server */
-    int pid_client;
-    if ((pid_client = fork()) == 0) {
-        request.client_pid = getpid();
 
-        /***** create the server_to_client pipe to get the Reply *****/
-        char server_to_client_fifo_name[1024];
-        sprintf(server_to_client_fifo_name, "tubo_%d", request.client_pid);
-        mkfifo(server_to_client_fifo_name, 0644);
+    /***** create the server_to_client pipe to get the Reply *****/
+    char server_to_client_fifo_name[1024];
+    sprintf(server_to_client_fifo_name, "tubo_%d", request.client_pid);
+    mkfifo(server_to_client_fifo_name, 0644);
 
-        /*************** send the request to server *****************/
-        int client_to_server = open("client_to_server", O_WRONLY);
-        write(client_to_server, &request, sizeof(struct request));
+    /*************** send the request to server *****************/
+    int client_to_server = open("client_to_server", O_WRONLY);
+    write(client_to_server, &request, sizeof(struct request));
 
-        /****** open the reply_pipe to read the server  reply *******/
-        /* OBS: only now I can do this because if I open before the request
-         * the server can't open the pipe (becausa de open here will be blocked)
-         * and the process will break before the request */
-        int server_to_client = open(server_to_client_fifo_name, O_RDONLY);
-        open(server_to_client_fifo_name, O_WRONLY);
+    /****** open the reply_pipe to read the server  reply *******/
+    /* OBS: only now I can do this because if I open before the request
+     * the server can't open the pipe (becausa de open here will be blocked)
+     * and the process will break before the request */
+    int server_to_client = open(server_to_client_fifo_name, O_RDONLY);
+    open(server_to_client_fifo_name, O_WRONLY);
 
-        Reply reply;
-        State last_state = NOTHING;
-        int load_pid = -1;
-        while (read(server_to_client, &reply, sizeof(struct reply)) > 0) {
-            show_state(reply.state, last_state);
-            if (reply.state == FINISHED) {
-                unlink(server_to_client_fifo_name);
-                _exit(0);
-            }
+    Reply reply;
+    State last_state = NOTHING;
+    int load_pid = -1;
+    while (read(server_to_client, &reply, sizeof(struct reply)) > 0) {
+        show_state(reply.state, last_state);
+        if (reply.state == FINISHED) {
+            break;
         }
-        unlink(server_to_client_fifo_name);
-        _exit(0);
     }
-
-    int status;
-    wait(&status);
-
+    unlink(server_to_client_fifo_name);
     return NULL;
 }
 
