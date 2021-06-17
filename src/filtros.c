@@ -37,7 +37,7 @@ Filtro* init_filtro(
   Filtro* filtro = (Filtro*) malloc(sizeof(struct filtro));
   *filtro        = (struct filtro){
       .identificador       = strdup(identificador),
-      .ficheiro_executavel = strdup(ficheiro_executavel),
+      .ficheiro_executavel = strdup(path_executavel),
       .max_instancias      = max_instancias,
       .em_processamento    = 0};
 

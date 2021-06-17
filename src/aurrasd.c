@@ -156,8 +156,6 @@ int main(int argc, char* argv[]) {
 
   char* all_filters_string = (char*) malloc(sizeof(char) * BUFSIZE);
 
-  // TODO apagar printf
-  printf("CATALOGO DE FILTROS\n");
   CatalogoFiltros* catalogo =
       init_catalogo_fitros(all_filters_string, BUFSIZE, 0);
   if (!catalogo || catalogo->used == 0) {
@@ -165,6 +163,8 @@ int main(int argc, char* argv[]) {
     _exit(1);
   }
 
+  // TODO apagar printf
+  printf("CATALOGO DE FILTROS\n");
   show_catalogo(catalogo);
   printf("-----------------------\n");
   printf("\n%s\n\n", all_filters_string);
@@ -198,29 +198,38 @@ int main(int argc, char* argv[]) {
        * estrategia seria um bool q diria o q faria mudar nome
        */
       Request request;
-      // fcntl(pi, F_SETFL, O_NONBLOCK);
       read(pipe_onhold[0], &request, sizeof(Request));
-      if (!queue) {
-        queue        = init_queue(&request);
-        last_request = queue;
+      // verifica se pode ser executado
+      if (valid_request_to_execute(&request, catalogo)) {
+        // se sim mandado
+        write(pipe_execucao[1], &request, sizeof(Request));
+        update_catalogo_execute_request(catalogo, request);
       }
       else {
-        add_request_to_queue(&request, last_request);
+        // caso contrario adiciona o a queue
+        if (!queue) {
+          queue        = init_queue(&request);
+          last_request = queue;
+        }
+        else {
+          add_request_to_queue(&request, last_request);
+        }
       }
-      // vai devolver as stats, no array  dos filtros em que em cada
-      // posicao indica o numero de filtros livres
+      // recebe um request q ja foi concluido
       Request fake_request;
       read(pipe_updates[0], &fake_request, sizeof(Request));
+      update_catalogo_done_request(catalogo, fake_request);
 
       // verifica se algum filtro(s) pode ser executado
       // TODO ou alterar e remover o endereco aser usado, ou entao verificar se
       // varias funcoes podem ser executadas
       Queue*   endereco_a_analisar;
       Request* request_to_execute =
-          can_execute_request(queue, fake_request, endereco_a_analisar);
+          can_execute_request(queue, catalogo, endereco_a_analisar);
       // se sim manda
       if (request_to_execute) {
         write(pipe_execucao[1], request_to_execute, sizeof(Request));
+        update_catalogo_execute_request(catalogo, *request_to_execute);
       }
     }
     // le do pipe on hold e coloca no fim da queue
@@ -250,6 +259,8 @@ int main(int argc, char* argv[]) {
       int status;
       wait(&status);
       // ver que filtros foram libertados e enviar para o pipe
+      // envia o request q terminou
+      write(pipe_updates[1], &request, sizeof(Request));
       State state =
           (WIFEXITED(status) && WEXITSTATUS(status) == 0) ? FINISHED : NOTHING;
       inform_client(state, request.client_pid);
