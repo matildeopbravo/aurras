@@ -53,3 +53,5 @@ dkms.conf
 
 Notas/*
 obj/*
+bin/aurrasd
+bin/aurras
