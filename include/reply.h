@@ -4,7 +4,7 @@
 typedef enum state { NOTHING = -1, PENDING, PROCESSING, FINISHED } State;
 
 typedef struct reply {
-  State state;
+    State state;
 } Reply;
 
 #endif

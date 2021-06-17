@@ -12,7 +12,6 @@
 #include "../include/reply.h"
 #include "../include/request.h"
 #define BUFSIZE 1024
-#define PATH_FILTROS "etc/aurrasd.conf"
 
 void print_server(Request* new_request) {
 
@@ -58,7 +57,8 @@ void inform_client(State state, pid_t pid) {
 // chamado para o elemento acabado de tirar da queue
 // retorna se iniciou o processamento ou false caso algum dos filtros nao
 // esteja disponivel
-bool processa_pedido(CatalogoFiltros* catalogo, Request* req, char * all_filters_string) {
+bool processa_pedido(
+    CatalogoFiltros* catalogo, Request* req, char* all_filters_string) {
     switch (req->request_type) {
         case TRANSFORM: {
             int number_required[MAX_FILTER_NUMBER] = {0};
@@ -80,7 +80,10 @@ bool processa_pedido(CatalogoFiltros* catalogo, Request* req, char * all_filters
             char fifo_name[1024];
             sprintf(fifo_name, "tubo_%d", req->client_pid);
             int tubo_escrita = open(fifo_name, O_WRONLY);
-            write(tubo_escrita,all_filters_string,strlen(all_filters_string)*sizeof(char));
+            write(
+                tubo_escrita,
+                all_filters_string,
+                strlen(all_filters_string) * sizeof(char));
             break;
         }
     }
@@ -139,6 +142,16 @@ int executa_pedido(CatalogoFiltros* catalogo, Request* request) {
 }
 
 int main(int argc, char* argv[]) {
+    if (argc == 3) {
+        config_path = argv[1];
+        filter_path = argv[2];
+    }
+    else {
+        char buf[] = "wrong number of arguments\n";
+        write(STDERR_FILENO, buf, sizeof(buf));
+        _exit(1);
+    }
+
     if (signal(SIGTERM, sigterm_handler) == SIG_ERR) {
         perror("SIGQUIT");
         return 1;
@@ -149,10 +162,12 @@ int main(int argc, char* argv[]) {
     // TODO apagar printf
     printf("CATALOGO DE FILTROS\n");
     CatalogoFiltros* catalogo =
-        init_catalogo_fitros(PATH_FILTROS, all_filters_string, BUFSIZE, 0);
-    if (!catalogo)
+        init_catalogo_fitros(all_filters_string, BUFSIZE, 0);
+    if (!catalogo) {
         printf("Erro-> Não foi possivel a criacao do Catalogo de filtros\n\n");
-    // msg de erro
+        _exit(1);
+    }
+
     show_catalogo(catalogo);
     printf("-----------------------\n");
     printf("\n%s\n\n", all_filters_string);
@@ -164,9 +179,9 @@ int main(int argc, char* argv[]) {
     // vai tratar da queue
     int pipe_onhold[2], pipe_ready[2], pipe_updates[2], pipe_execucao[2];
     if (pipe(pipe_onhold) == -1 || pipe(pipe_ready) == -1 ||
-            pipe(pipe_updates) == -1,
-        pipe(pipe_execucao) == -1) {
+        pipe(pipe_updates) == -1 || pipe(pipe_execucao) == -1) {
         perror("Pipe creation failed");
+        _exit(1);
     }
     if (fork() == 0) {
         close(pipe_onhold[1]);
@@ -297,7 +312,7 @@ int main(int argc, char* argv[]) {
     Request* new_request = malloc(sizeof(struct request));
     while (!stop && read(fd_leitura, new_request, sizeof(struct request)) > 0) {
         print_server(new_request);
-        bool ready = processa_pedido(catalogo, new_request,all_filters_string);
+        bool ready = processa_pedido(catalogo, new_request, all_filters_string);
         int chosen_pipe = ready ? pipe_execucao[1] : pipe_onhold[1];
         if (!ready) {
             inform_client(PENDING, new_request->client_pid);
