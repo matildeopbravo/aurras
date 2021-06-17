@@ -77,16 +77,22 @@ Request* remove_request(Queue* prev_queue, Queue* cur_queue) {
 bool valid_request_to_execute(Request* request, CatalogoFiltros* catalogo) {
   bool valid = true;
   if (request->request_type != TRANSFORM) return true;
-  size_t array[MAX_FILTER_NUMBER];
 
+  size_t array[MAX_FILTER_NUMBER];
   for (size_t i = 0; i < request->number_filters; i++) {
     array[request->requested_filters[i]]++;
   }
 
   for (size_t i = 0; valid && i < request->number_filters; i++) {
     size_t em_processo = catalogo->filtros[i]->em_processamento;
-    valid              = em_processo == 0 ||
-            ((em_processo + array[i]) < catalogo->filtros[i]->max_instancias);
+    if (array[i] > catalogo->filtros[i]->max_instancias) {
+      // TODO lanca erro
+      // Mudar estado de pedido??
+      // fprintf(STDERR_FILENO, "Error: maximum possible filters exceeded\n");
+      request->request_type = TERMINATION;
+      return true;
+    }
+    valid = (em_processo + array[i]) < catalogo->filtros[i]->max_instancias;
   }
   return valid;
 }

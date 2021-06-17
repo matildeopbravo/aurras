@@ -71,8 +71,16 @@ bool processa_pedido(
       return false;
       break;
     }
-    case STATUS:
+    case STATUS: {
+      // char fifo_name[1024];
+      // sprintf(fifo_name, "tubo_%d", req->client_pid);
+      // int tubo_escrita = open(fifo_name, O_WRONLY);
+      // write(
+      //     tubo_escrita,
+      //     req->requested_filters,
+      //     sizeof(int) * MAX_FILTER_NUMBER);
       break;
+    }
     case HANDSHAKE: {
       char fifo_name[1024];
       sprintf(fifo_name, "tubo_%d", req->client_pid);
@@ -255,7 +263,6 @@ int main(int argc, char* argv[]) {
   close(pipe_updates[0]);
   if (fork() == 0) {
     // so chegam aqui requests que tem todos os filtros disponiveis
-    fprintf(stderr, "teste\n");
     Request request;
     while (read(pipe_execucao[0], &request, sizeof(Request)) > 0) {
 
@@ -265,7 +272,7 @@ int main(int argc, char* argv[]) {
 
       if (fork() == 0) {
         // vai fazer a pipeline de execs
-        fprintf(stderr, "Vou fazer execs yay\n");
+        // fprintf(stderr, "Vou fazer execs yay\n");
         int r = executa_pedido(catalogo, &request);
         _exit(r);
       }
