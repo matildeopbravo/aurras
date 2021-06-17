@@ -11,15 +11,15 @@ extern char* config_path;
 extern char* filter_path;
 
 typedef struct filtro {
-    char* identificador;
-    char* ficheiro_executavel;
-    size_t max_instancias;
-    size_t em_processamento;
+  char*  identificador;
+  char*  ficheiro_executavel;
+  size_t max_instancias;
+  size_t em_processamento;
 } Filtro;
 
 typedef struct catalogo_filtros {
-    Filtro* filtros[MAX_FILTER_NUMBER];
-    size_t used;
+  Filtro* filtros[MAX_FILTER_NUMBER];
+  size_t  used;
 } CatalogoFiltros;
 
 void free_filtro(Filtro* filtro);
@@ -47,4 +47,5 @@ void update_catalogo_done_request(CatalogoFiltros* catalogo, Request request);
 
 void update_catalogo_execute_request(
     CatalogoFiltros* catalogo, Request request);
+void update_fake_request(CatalogoFiltros* catalogo, Request* fake_request);
 #endif

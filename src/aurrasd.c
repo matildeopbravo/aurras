@@ -61,15 +61,19 @@ bool processa_pedido(
     CatalogoFiltros* catalogo, Request* req, char* all_filters_string) {
   switch (req->request_type) {
     case TRANSFORM: {
-      int number_required[MAX_FILTER_NUMBER] = {0};
-      for (int i = 0, j = 0; i < catalogo->used && j < req->number_filters;
-           i++) {
-        int filtro_pedido            = req->requested_filters[i];
-        int number_requested_filters = ++number_required[filtro_pedido];
-        if (!is_available(catalogo, filtro_pedido, number_requested_filters)) {
-          return false;
-        }
-      }
+      // é mandado diretamente pra o filho q trata da queue
+
+      // int number_required[MAX_FILTER_NUMBER] = {0};
+      // for (int i = 0, j = 0; i < catalogo->used && j < req->number_filters;
+      //      i++) {
+      //   int filtro_pedido            = req->requested_filters[i];
+      //   int number_requested_filters = ++number_required[filtro_pedido];
+      //   if (!is_available(catalogo, filtro_pedido, number_requested_filters))
+      //   {
+      //     return false;
+      //   }
+      // }
+      return false;
       break;
     }
     case STATUS:
@@ -228,6 +232,8 @@ int main(int argc, char* argv[]) {
           can_execute_request(queue, catalogo, endereco_a_analisar);
       // se sim manda
       if (request_to_execute) {
+        if (request_to_execute->request_type == STATUS)
+          update_fake_request(catalogo, request_to_execute);
         write(pipe_execucao[1], request_to_execute, sizeof(Request));
         update_catalogo_execute_request(catalogo, *request_to_execute);
       }

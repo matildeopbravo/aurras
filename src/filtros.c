@@ -225,3 +225,11 @@ void update_catalogo_execute_request(
     increase_number_filtro(catalogo, request.requested_filters[i]);
   }
 }
+
+void update_fake_request(CatalogoFiltros* catalogo, Request* fake_request) {
+  if (!catalogo) return;
+
+  size_t size = catalogo->used;
+  for (int i = 0; i < size; i++)
+    fake_request->requested_filters[i] = catalogo->filtros[i]->em_processamento;
+}

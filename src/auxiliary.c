@@ -74,7 +74,8 @@ Request* remove_request(Queue* prev_queue, Queue* cur_queue) {
 }
 
 bool valid_request_to_execute(Request* request, CatalogoFiltros* catalogo) {
-  bool   valid = true;
+  bool valid = true;
+  if (request->request_type != TRANSFORM) return true;
   size_t array[MAX_FILTER_NUMBER];
 
   for (size_t i = 0; i < request->number_filters; i++)
