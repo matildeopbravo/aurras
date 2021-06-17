@@ -14,6 +14,23 @@
 #define BUFSIZE 1024
 #define PATH_FILTROS "etc/aurrasd.conf"
 
+void print_server(Request* new_request) {
+
+    printf(
+        "Request type is %s\n",
+        new_request->request_type == TRANSFORM ? "Transform" : "Status");
+    for (size_t i = 0; i < MAX_FILTER_NUMBER; i++) {
+        size_t n = 0;
+        if ((n = new_request->requested_filters[i]) > 0) {
+            printf("Filter number %zu was requested %zu times\n", i, n);
+        }
+    }
+    printf(
+        "Input file : %s, output_file : %s\n ",
+        new_request->input_file,
+        new_request->output_file);
+}
+
 bool stop = false;
 
 void sigterm_handler(int signum) {
@@ -22,34 +39,40 @@ void sigterm_handler(int signum) {
     stop = true;
 }
 
-bool is_available(
-    CatalogoFiltros* catalogo, int indice, size_t number_requested_filters) {
-    // {indice valido}
+bool is_available(CatalogoFiltros* catalogo, int indice, int number_required) {
+    // Supondo um indice valido
     if (indice > catalogo->used) return false;
     return (catalogo->filtros[indice]->max_instancias -
-            catalogo->filtros[indice]->em_processamento) >=
-           number_requested_filters;
-    // {pos condicao}
+            catalogo->filtros[indice]->em_processamento) >= number_required;
 }
 
 // chamado para o elemento acabado de tirar da queue
 // retorna se iniciou o processamento ou false caso algum dos filtros nao
 // esteja disponivel
 bool processa_pedido(CatalogoFiltros* catalogo, Request* req) {
-    if (req->request_type == TRANSFORM) {
-        // TO FIX
-        for (int i = 0, j = 0; i < catalogo->used && j < req->number_filters;
-             i++) {
-            size_t number_requested_filters = req->requested_filters[i];
-            if (number_requested_filters > 0) {
-                if (!is_available(catalogo, i, number_requested_filters)) {
+    switch (req->request_type) {
+        case TRANSFORM: {
+            int number_required[MAX_FILTER_NUMBER] = {0};
+            for (int i = 0, j = 0;
+                 i < catalogo->used && j < req->number_filters;
+                 i++) {
+                int filtro_pedido = req->requested_filters[i];
+                int number_requested_filters = ++number_required[filtro_pedido];
+                if (!is_available(
+                        catalogo, filtro_pedido, number_requested_filters)) {
                     return false;
                 }
             }
+            break;
         }
-        // status
-    }
-    else {
+        case STATUS:
+            break;
+        case HANDSHAKE: {
+            char fifo_name[1024];
+            sprintf(fifo_name, "tubo_%d", req->client_pid);
+            int tubo_escrita = open(fifo_name, O_WRONLY);
+            break;
+        }
     }
     return true;
 }
@@ -271,50 +294,29 @@ int main(int argc, char* argv[]) {
         printf("Client PID is %d\n", new_request->client_pid);
         // le do pipe anonimo que vem as cenas da queue
 
-        if (new_request->request_type == HANDSHAKE) {
-            char fifo_name[1024];
-            sprintf(fifo_name, "tubo_%d", new_request->client_pid);
-            int tubo_escrita = open(fifo_name, O_WRONLY);
-            // temos que ter alguma cena com os clientes atualmnte conectados
-        }
+        // temos que ter alguma cena com os clientes atualmnte conectados
+        // TODO
+        // ver se os filtros do request lido estao disponiveis,
+        // se sim envia para o pipe de execucao. Caso contrario manda para o
+        // pipe on hold e avisa o client que esta pending (?)
 
-        else {
-            // TODO
-            // ver se os filtros do request lido estao disponiveis,
-            // se sim envia para o pipe de execucao. Caso contrario manda para o
-            // pipe on hold e avisa o client que esta pending (?)
+        // isto e so para debug
+        print_server(new_request);
+        processa_pedido(catalogo, new_request);
+        /* criação de um reply para debug */
+        // Reply reply;
+        // reply.state = PENDING;
 
-            // isto e so para debug
-            printf(
-                "Request type is %s\n",
-                new_request->request_type == TRANSFORM ? "Transform"
-                                                       : "Status");
-            for (size_t i = 0; i < MAX_FILTER_NUMBER; i++) {
-                size_t n = 0;
-                if ((n = new_request->requested_filters[i]) > 0) {
-                    printf("Filter number %zu was requested %zu times\n", i, n);
-                }
-            }
-            printf(
-                "Input file : %s, output_file : %s\n ",
-                new_request->input_file,
-                new_request->output_file);
-            /* criação de um reply para debug */
-            // Reply reply;
-            // reply.state = PENDING;
-
-            // char server_to_client_pipe[1024];
-            // sprintf(server_to_client_pipe, "tubo_%d",
-            // new_request->client_pid); int server_to_client =
-            // open(server_to_client_pipe, O_WRONLY); write(server_to_client,
-            // &reply, sizeof(struct reply)); sleep(5); reply.state =
-            // PROCESSING; write(server_to_client, &reply, sizeof(struct
-            // reply)); sleep(5); reply.state = FINISHED;
-            // write(server_to_client, &reply, sizeof(struct reply));
-            // sleep(5);
-            /* fim do debug de um reply */
-            processa_pedido(catalogo, new_request);
-        }
+        // char server_to_client_pipe[1024];
+        // sprintf(server_to_client_pipe, "tubo_%d",
+        // new_request->client_pid); int server_to_client =
+        // open(server_to_client_pipe, O_WRONLY); write(server_to_client,
+        // &reply, sizeof(struct reply)); sleep(5); reply.state =
+        // PROCESSING; write(server_to_client, &reply, sizeof(struct
+        // reply)); sleep(5); reply.state = FINISHED;
+        // write(server_to_client, &reply, sizeof(struct reply));
+        // sleep(5);
+        /* fim do debug de um reply */
     }
     if (catalogo) free_catalogo_filtros(catalogo);
     if (all_filters_string) free(all_filters_string);

@@ -1,11 +1,11 @@
 #include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <sys/stat.h>
-#include <signal.h>
 
 #include "../include/reply.h"
 #include "../include/request.h"
@@ -27,14 +27,18 @@
 
 /***************** HELPERS ****************************/
 
-void show_state (State state, State last_state) {
+void show_state(State state, State last_state) {
 
-    switch(last_state){
-        case PENDING: 
-      printf (ANSI_COLOR_GREEN "\r→ "ANSI_COLOR_RESET "pending " ANSI_COLOR_GREEN "complete\n" ANSI_COLOR_RESET);
+    switch (last_state) {
+        case PENDING:
+            printf(ANSI_COLOR_GREEN "\r→ " ANSI_COLOR_RESET
+                                    "pending " ANSI_COLOR_GREEN
+                                    "complete\n" ANSI_COLOR_RESET);
             break;
         case PROCESSING:
-    printf (ANSI_COLOR_GREEN "\r→ "ANSI_COLOR_RESET "processing " ANSI_COLOR_GREEN "complete\n" ANSI_COLOR_RESET);
+            printf(ANSI_COLOR_GREEN "\r→ " ANSI_COLOR_RESET
+                                    "processing " ANSI_COLOR_GREEN
+                                    "complete\n" ANSI_COLOR_RESET);
             break;
         case FINISHED:
             return;
@@ -45,15 +49,15 @@ void show_state (State state, State last_state) {
             break;
     }
 
-    switch(state){
-        case PENDING: 
-            printf (ANSI_COLOR_BLUE "→" ANSI_COLOR_RESET " pending ");
+    switch (state) {
+        case PENDING:
+            printf(ANSI_COLOR_BLUE "→" ANSI_COLOR_RESET " pending ");
             break;
         case PROCESSING:
-            printf (ANSI_COLOR_BLUE "→" ANSI_COLOR_RESET " processing ");
+            printf(ANSI_COLOR_BLUE "→" ANSI_COLOR_RESET " processing ");
             break;
         case FINISHED:
-            printf (ANSI_COLOR_GREEN "→" ANSI_COLOR_RESET " finished\n ");
+            printf(ANSI_COLOR_GREEN "→" ANSI_COLOR_RESET " finished\n ");
             return;
             break;
         case NOTHING:
@@ -62,29 +66,29 @@ void show_state (State state, State last_state) {
             printf("Default\n");
             break;
     }
-    
-    fflush (stdout);
-  
-  while (1) {  
-    printf (ANSI_COLOR_YELLOW "." ANSI_COLOR_RESET);
-    fflush (stdout);
-    sleep (1);
-    
-    printf (ANSI_COLOR_YELLOW "." ANSI_COLOR_RESET);
-    fflush (stdout);
-    sleep (1);
-    
-    fflush (stdout);
-    printf (ANSI_COLOR_YELLOW "." ANSI_COLOR_RESET);
-    fflush (stdout);
-    sleep(1);
-    
-    printf ("\033[3D");
-    fflush (stdout);
-    printf ("\033[K");
-    fflush (stdout);
-    sleep (1);
-  }
+
+    fflush(stdout);
+
+    while (1) {
+        printf(ANSI_COLOR_YELLOW "." ANSI_COLOR_RESET);
+        fflush(stdout);
+        sleep(1);
+
+        printf(ANSI_COLOR_YELLOW "." ANSI_COLOR_RESET);
+        fflush(stdout);
+        sleep(1);
+
+        fflush(stdout);
+        printf(ANSI_COLOR_YELLOW "." ANSI_COLOR_RESET);
+        fflush(stdout);
+        sleep(1);
+
+        printf("\033[3D");
+        fflush(stdout);
+        printf("\033[K");
+        fflush(stdout);
+        sleep(1);
+    }
 }
 
 /* return -1 if filter does not exist (otherwise return the filter_index for
@@ -144,8 +148,7 @@ prs_pointer transform(int argc, char** argv) {
         return NULL;
     }
 
-    for (int i = 0; i < 32; i++)printf("%d\n",request.requested_filters[i]);
-
+    for (int i = 0; i < 32; i++) printf("%d\n", request.requested_filters[i]);
 
     /* create a child to send a pid to server */
     int pid_client;
@@ -156,7 +159,7 @@ prs_pointer transform(int argc, char** argv) {
         char server_to_client_fifo_name[1024];
         sprintf(server_to_client_fifo_name, "tubo_%d", request.client_pid);
         mkfifo(server_to_client_fifo_name, 0644);
-        
+
         /*************** send the request to server *****************/
         int client_to_server = open("client_to_server", O_WRONLY);
         write(client_to_server, &request, sizeof(struct request));
@@ -166,20 +169,26 @@ prs_pointer transform(int argc, char** argv) {
          * the server can't open the pipe (becausa de open here will be blocked)
          * and the process will break before the request */
         int server_to_client = open(server_to_client_fifo_name, O_RDONLY);
-        open(server_to_client_fifo_name,O_WRONLY); 
+        open(server_to_client_fifo_name, O_WRONLY);
 
         Reply reply;
         State last_state = NOTHING;
         int load_pid = -1;
-        while(read(server_to_client, &reply, sizeof(struct reply)) > 0){
-            
-            if (load_pid != -1){
+        while (read(server_to_client, &reply, sizeof(struct reply)) > 0) {
+
+            if (load_pid != -1) {
                 kill(load_pid, SIGKILL);
             }
-           
-            if (reply.state == FINISHED) {show_state(reply.state, last_state); _exit(0);}
-            
-            if ((load_pid = fork()) == 0){show_state(reply.state, last_state);_exit(0);}
+
+            if (reply.state == FINISHED) {
+                show_state(reply.state, last_state);
+                _exit(0);
+            }
+
+            if ((load_pid = fork()) == 0) {
+                show_state(reply.state, last_state);
+                _exit(0);
+            }
             last_state = reply.state;
         }
 
@@ -202,7 +211,8 @@ prs_pointer status(int argc, char** argv) {
 }
 
 prs_pointer info(int argc, char** argv) {
-    printf("./aurras status\n./aurras transform input-filename output-filename filter-id-1 filter-id-2 ...\n");
+    printf("./aurras status\n./aurras transform input-filename output-filename "
+           "filter-id-1 filter-id-2 ...\n");
 
     return NULL;
 }
