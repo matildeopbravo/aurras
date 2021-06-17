@@ -17,15 +17,18 @@ int  fd_leitura;
 bool has_clients = false;
 
 void print_server(Request* new_request) {
-
-  printf("Client PID is %d\n", new_request->client_pid);
-  for (int i = 0; i < new_request->number_filters; i++) {
-    printf("Filter %d was requested\n", new_request->requested_filters[i]);
+  if (new_request->request_type == TRANSFORM) {
+    printf("\nNew process\n");
+    printf("Client PID is %d\n", new_request->client_pid);
+    printf("Filters need:\n");
+    for (int i = 0; i < new_request->number_filters; i++) {
+      printf("   Filter %d was requested\n", new_request->requested_filters[i]);
+    }
+    printf(
+        "Input file : %s\nOutput_file : %s\n\n",
+        new_request->input_file,
+        new_request->output_file);
   }
-  printf(
-      "Input file : %s, output_file : %s\n ",
-      new_request->input_file,
-      new_request->output_file);
 }
 
 void sigterm_handler(int signum) {
@@ -58,19 +61,6 @@ bool processa_pedido(
   switch (req->request_type) {
     case TRANSFORM: {
       // é mandado diretamente pra o filho q trata da queue
-
-      // int number_required[MAX_FILTER_NUMBER] = {0};
-      // for (int i = 0, j = 0; i < catalogo->used && j <
-      // req->number_filters;
-      //      i++) {
-      //   int filtro_pedido            = req->requested_filters[i];
-      //   int number_requested_filters =
-      //   ++number_required[filtro_pedido]; if (!is_available(catalogo,
-      //   filtro_pedido, number_requested_filters))
-      //   {
-      //     return false;
-      //   }
-      // }
       return false;
       break;
     }
@@ -165,7 +155,7 @@ int main(int argc, char* argv[]) {
     filter_path = argv[2];
   }
   else {
-    char buf[] = "wrong number of arguments\n";
+    char buf[] = "Wrong number of arguments\n";
     write(STDERR_FILENO, buf, sizeof(buf));
     _exit(1);
   }
@@ -175,26 +165,26 @@ int main(int argc, char* argv[]) {
   CatalogoFiltros* catalogo =
       init_catalogo_fitros(all_filters_string, BUFSIZE, 0);
   if (!catalogo || catalogo->used == 0) {
-    printf("Erro-> Não foi possivel a criacao do Catalogo de filtros\n\n");
+    printf("Error -> It was not possible to create the Filter Catalog \n\n");
     _exit(1);
   }
 
   // TODO apagar printf
-  printf("CATALOGO DE FILTROS\n");
+  printf("FILTER CATALOG\n");
   show_catalogo(catalogo);
   printf("-----------------------\n");
-  printf("\n%s\n\n", all_filters_string);
+  // debug
+  // printf("\n%s\n\n", all_filters_string);
 
   mkfifo("client_to_server", 0644);
   fd_leitura = open("client_to_server", O_RDONLY);
-  fprintf(stderr, "ola\n");
   open("client_to_server", O_WRONLY);
 
   // vai tratar da queue
   int pipe_onhold[2], pipe_updates[2], pipe_execucao[2];
   if (pipe(pipe_onhold) == -1 || pipe(pipe_updates) == -1 ||
       pipe(pipe_execucao) == -1) {
-    perror("Pipe creation failed");
+    perror("Pipe creation failed\n");
     _exit(1);
   }
   if (fork() == 0) {
@@ -223,14 +213,11 @@ int main(int argc, char* argv[]) {
       // show_catalogo(catalogo);
       if (valid_request_to_execute(&request, catalogo)) {
         // se sim mandado
-        fprintf(stderr, "nao e deadlock\n");
         write(pipe_execucao[1], &request, sizeof(Request));
         update_catalogo_execute_request(catalogo, request);
       }
       else {
-        fprintf(stderr, "nao e deadlock2\n");
         // caso contrario adiciona o a queue
-        // fprintf(stderr, "nao e deadlock\n");
         if (!queue) {
           queue = init_queue(&request);
           // TODO verificar
@@ -246,8 +233,6 @@ int main(int argc, char* argv[]) {
       update_catalogo_done_request(catalogo, fake_request);
 
       // verifica se algum filtro(s) pode ser executado
-      // TODO ou alterar e remover o endereco aser usado, ou entao
-      // verificar se varias funcoes podem ser executadas
       Request* request_to_execute =
           can_execute_request(queue, catalogo, last_request);
       // se sim manda
@@ -293,13 +278,10 @@ int main(int argc, char* argv[]) {
     Request request;
     while (read(pipe_execucao[0], &request, sizeof(Request)) > 0) {
 
-      // fprintf(stderr, " lixo ? %d\n", request.request_type);
-      //_exit(0);
       // if (request.request_type == HANDSHAKE) continue;
 
       if (fork() == 0) {
         // vai fazer a pipeline de execs
-        // fprintf(stderr, "Vou fazer execs yay\n");
         int r = executa_pedido(catalogo, &request);
         _exit(r);
       }
@@ -312,6 +294,14 @@ int main(int argc, char* argv[]) {
       write(pipe_updates[1], &request, sizeof(Request));
       State state =
           (WIFEXITED(status) && WEXITSTATUS(status) == 0) ? FINISHED : NOTHING;
+      // TODO apagar
+      if (state == FINISHED) {
+        printf("\nProcess %d finished\n\n", request.client_pid);
+      }
+      else {
+        printf("\nSomething goes wrong\n");
+        printf("Process %d terminated\n\n", request.client_pid);
+      }
       inform_client(state, request.client_pid);
     }
     _exit(0);

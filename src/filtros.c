@@ -73,7 +73,7 @@ void show_filtro(Filtro* filtro) {
   printf("FILTRO\n");
   printf("\tidentificador: %s\n", filtro->identificador);
   printf("\tficheiro executavel: %s\n", filtro->ficheiro_executavel);
-  printf("\tmax instancias: %zu\n", filtro->max_instancias);
+  printf("\tmáximo de instancias: %zu\n", filtro->max_instancias);
   printf("\tem processamento: %zu\n", filtro->em_processamento);
 }
 
@@ -195,7 +195,10 @@ void free_catalogo_filtros(CatalogoFiltros* catalogo) {
 void show_catalogo(CatalogoFiltros* catalogo) {
   if (!catalogo) return;
   size_t size = catalogo->used;
-  for (int i = 0; i < size; i++) show_filtro(catalogo->filtros[i]);
+  for (int i = 0; i < size; i++) {
+    printf("\n%d: ", i);
+    show_filtro(catalogo->filtros[i]);
+  }
 }
 
 void show_one_filtro(CatalogoFiltros* catalogo, char* name) {
@@ -203,6 +206,7 @@ void show_one_filtro(CatalogoFiltros* catalogo, char* name) {
 }
 
 void update_catalogo_done_request(CatalogoFiltros* catalogo, Request request) {
+  if (request.request_type != TRANSFORM) return;
   size_t size = request.number_filters;
   for (size_t i = 0; i < size; i++) {
     decrease_number_filtro(catalogo, request.requested_filters[i]);
@@ -210,6 +214,7 @@ void update_catalogo_done_request(CatalogoFiltros* catalogo, Request request) {
 }
 void update_catalogo_execute_request(
     CatalogoFiltros* catalogo, Request request) {
+  if (request.request_type != TRANSFORM) return;
   size_t size = request.number_filters;
   for (size_t i = 0; i < size; i++) {
     increase_number_filtro(catalogo, request.requested_filters[i]);
