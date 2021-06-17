@@ -24,17 +24,21 @@ Filtro* init_filtro(
       .max_instancias      = max_instancias,
       .em_processamento    = 0};
 
-  size_t      used = strlen(filter_path) + strlen(ficheiro_executavel);
+  size_t      len_filter_path = strlen(filter_path);
+  size_t      used = len_filter_path + strlen(ficheiro_executavel) + 1;
   struct stat buffer;
   char        path_executavel[used];
   // sprintf(filter_path, "%s", ficheiro_executavel);
   int valid = 0;
   if (used < BUF_SIZE) {
-    strcat(path_executavel, filter_path);
-    strcat(path_executavel, "\"");
-    strcat(path_executavel, ficheiro_executavel);
-    path_executavel[used - 1] = '\n';
-    valid                     = stat(path_executavel, &buffer);
+    for (int i = 0; i < len_filter_path; i++)
+      path_executavel[i] = filter_path[i];
+    path_executavel[len_filter_path] = '/';
+
+    for (int i = len_filter_path + 1, j = 0; i < used; i++, j++)
+      path_executavel[i] = ficheiro_executavel[j];
+    // path_executavel[used] = '\n';
+    valid = stat(path_executavel, &buffer);
   }
   // verificar se é valido
   if (valid != 0) {
