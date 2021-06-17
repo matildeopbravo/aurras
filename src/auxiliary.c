@@ -65,12 +65,16 @@ void add_request_to_queue(Request* request, Queue** last_request) {
   }
 }
 
-Request* remove_request(Queue* prev_queue, Queue* cur_queue) {
+Request* remove_request(
+    Queue* prev_queue, Queue* cur_queue, Queue** last_request) {
   // isto não deveria acontecer
-  if (!prev_queue || !cur_queue) return NULL;
+  if (!prev_queue) return NULL;
 
   Request* request = cur_queue->request;
   prev_queue->prox = cur_queue->prox;
+
+  if (prev_queue->prox == NULL) *last_request = prev_queue;
+
   return request;
 }
 
@@ -98,20 +102,40 @@ bool valid_request_to_execute(Request* request, CatalogoFiltros* catalogo) {
 }
 
 // TODO verificar
-Request* can_execute_request(Queue* queue, CatalogoFiltros* catalogo) {
-  Request* request  = NULL;
-  Queue*   endereco = queue;
-  bool     find     = false;
+Request* can_execute_request(
+    Queue* queue, CatalogoFiltros* catalogo, Queue** last_queue) {
+  Request* request   = NULL;
+  Queue*   endereco  = queue;
+  Queue*   endereco2 = queue;
+  bool     find      = false;
 
   while (endereco && !find) {
-    bool     fail    = false;
     Request* request = queue->request;
     find             = valid_request_to_execute(request, catalogo);
-    if (!find) endereco = endereco->prox;
+    if (!find) {
+      endereco2 = endereco;
+    }
+    endereco = endereco->prox;
   }
   if (find) {
-    request = remove_request(endereco, endereco->prox);
+    request = remove_request(endereco2, endereco->prox, last_queue);
   }
 
+  return request;
+}
+
+Request* remove_request_by_pid(
+    Queue* queue, Queue** last_queue, pid_t client_pid) {
+  Request* request   = NULL;
+  Queue*   endereco  = queue;
+  Queue*   endereco2 = queue;
+  while (endereco) {
+    if (endereco->request->client_pid == client_pid) {
+      request = remove_request(endereco2, endereco->prox, last_queue);
+      if (*last_queue == NULL) *last_queue = endereco;
+    }
+    endereco2 = endereco;
+    endereco  = endereco->prox;
+  }
   return request;
 }

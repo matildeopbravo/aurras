@@ -23,9 +23,14 @@ Queue* init_queue(Request* request);
 
 void add_request_to_queue(Request* request, Queue** last_request);
 
-Request* remove_request(Queue* prev_queue, Queue* cur_queue);
+Request* remove_request(
+    Queue* prev_queue, Queue* cur_queue, Queue** last_request);
 
 bool valid_request_to_execute(Request* request, CatalogoFiltros* catalogo);
 
-Request* can_execute_request(Queue* queue, CatalogoFiltros* catalogo);
+Request* can_execute_request(
+    Queue* queue, CatalogoFiltros* catalogo, Queue** last_queue);
+
+Request* remove_request_by_pid(
+    Queue* queue, Queue** last_queue, pid_t client_pid);
 #endif
