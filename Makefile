@@ -4,9 +4,12 @@ CFLAGS += -Wall -O0 -g -flto -march=native -mtune=native -Isrc -Iinclude/
 
 all: client server
 
-server: bin/aurrasd
+server: obj bin/aurrasd
 
-client: bin/aurras
+client: obj bin/aurras
+
+obj:
+	mkdir -p obj
 
 bin/aurras : obj/aurras.o obj/stdprs.o obj/primary_functions.o obj/filtros.o  obj/auxiliary.o
 	gcc -o "$@" $^ $(CFLAGS)
